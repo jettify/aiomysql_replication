@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-bitCountInByte = [
+BIT_COUNT_IN_BYTE = [
     0, 1, 1, 2, 1, 2, 2, 3, 1, 2, 2, 3, 2, 3, 3, 4,
     1, 2, 2, 3, 2, 3, 3, 4, 2, 3, 3, 4, 3, 4, 4, 5,
     1, 2, 2, 3, 2, 3, 3, 4, 2, 3, 3, 4, 3, 4, 4, 5,
@@ -20,17 +20,17 @@ bitCountInByte = [
 ]
 
 # Calculate totol bit counts in a bitmap
-def BitCount(bitmap):
+def bit_count(bitmap):
     n = 0
     for i in range(0, len(bitmap)):
         bit = bitmap[i]
         if type(bit) is str:
             bit = ord(bit)
-        n += bitCountInByte[bit]
+        n += BIT_COUNT_IN_BYTE[bit]
     return n
 
 # Get the bit set at offset position in bitmap
-def BitGet(bitmap, position):
+def bit_get(bitmap, position):
     bit = bitmap[int(position / 8)]
     if type(bit) is str:
         bit = ord(bit)

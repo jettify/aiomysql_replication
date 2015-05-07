@@ -11,7 +11,7 @@ from .constants import FIELD_TYPE
 from .constants import BINLOG
 from .column import Column
 from .table import Table
-from .bitmap import BitCount, BitGet
+from .bitmap import bit_count, bit_get
 
 
 class RowsEvent(BinLogEvent):
@@ -72,7 +72,7 @@ class RowsEvent(BinLogEvent):
 
         # null bitmap length = (bits set in 'columns-present-bitmap'+7)/8
         # See http://dev.mysql.com/doc/internals/en/rows-event.html
-        null_bitmap = self.packet.read((BitCount(cols_bitmap) + 7) / 8)
+        null_bitmap = self.packet.read((bit_count(cols_bitmap) + 7) / 8)
 
         nullBitmapIndex = 0
         nb_columns = len(self.columns)
@@ -81,7 +81,7 @@ class RowsEvent(BinLogEvent):
             name = self.table_map[self.table_id].columns[i].name
             unsigned = self.table_map[self.table_id].columns[i].unsigned
 
-            if BitGet(cols_bitmap, i) == 0:
+            if bit_get(cols_bitmap, i) == 0:
                 values[name] = None
                 continue
 

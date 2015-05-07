@@ -25,7 +25,7 @@ class BinLogPacketWrapper(object):
     to the original packet objects variables and methods.
     """
 
-    __event_map = {
+    _event_map = {
         # event
         constants.QUERY_EVENT: event.QueryEvent,
         constants.ROTATE_EVENT: event.RotateEvent,
@@ -56,7 +56,7 @@ class BinLogPacketWrapper(object):
         # -1 because we ignore the ok byte
         self.read_bytes = 0
         # Used when we want to override a value in the data buffer
-        self.__data_buffer = b''
+        self._data_buffer = b''
 
         self.packet = from_packet
         self.charset = ctl_connection.charset
@@ -85,7 +85,7 @@ class BinLogPacketWrapper(object):
             event_size_without_header = self.event_size - 19
 
         self.event = None
-        event_class = self.__event_map.get(self.event_type, event.NotImplementedEvent)
+        event_class = self._event_map.get(self.event_type, event.NotImplementedEvent)
 
         if event_class not in allowed_events:
             return
@@ -100,9 +100,9 @@ class BinLogPacketWrapper(object):
     def read(self, size):
         size = int(size)
         self.read_bytes += size
-        if len(self.__data_buffer) > 0:
-            data = self.__data_buffer[:size]
-            self.__data_buffer = self.__data_buffer[size:]
+        if len(self._data_buffer) > 0:
+            data = self._data_buffer[:size]
+            self._data_buffer = self._data_buffer[size:]
             if len(data) == size:
                 return data
             else:
@@ -110,18 +110,18 @@ class BinLogPacketWrapper(object):
         return self.packet.read(size)
 
     def unread(self, data):
-        '''Push again data in data buffer. It's use when you want
+        """Push again data in data buffer. It's use when you want
         to extract a bit from a value a let the rest of the code normally
-        read the datas'''
+        read the datas"""
         self.read_bytes -= len(data)
-        self.__data_buffer += data
+        self._data_buffer += data
 
     def advance(self, size):
         size = int(size)
         self.read_bytes += size
-        buffer_len = len(self.__data_buffer)
+        buffer_len = len(self._data_buffer)
         if buffer_len > 0:
-            self.__data_buffer = self.__data_buffer[size:]
+            self._data_buffer = self._data_buffer[size:]
             if size > buffer_len:
                 self.packet.advance(size - buffer_len)
         else:
@@ -169,7 +169,7 @@ class BinLogPacketWrapper(object):
                              (self.__class__, key))
 
     def read_int_be_by_size(self, size):
-        '''Read a big endian integer values based on byte number'''
+        """Read a big endian integer values based on byte number"""
         if size == 1:
             return struct.unpack('>b', self.read(size))[0]
         elif size == 2:
@@ -184,7 +184,7 @@ class BinLogPacketWrapper(object):
             return struct.unpack('>l', self.read(size))[0]
 
     def read_uint_by_size(self, size):
-        '''Read a little endian integer values based on byte number'''
+        """Read a little endian integer values based on byte number"""
         if size == 1:
             return self.read_uint8()
         elif size == 2:
