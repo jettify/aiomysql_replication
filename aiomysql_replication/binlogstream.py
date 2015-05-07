@@ -37,7 +37,7 @@ class BinLogStreamReader(object):
     """
 
     def __init__(self, connection_settings, server_id, *, resume_stream=False,
-                 blocking=False, only_events=None, log_file=None, log_pos=None,
+                 blocking=True, only_events=None, log_file=None, log_pos=None,
                  filter_non_implemented_events=True,
                  ignored_events=None, auto_position=None,
                  only_tables=None, only_schemas=None,
@@ -56,27 +56,27 @@ class BinLogStreamReader(object):
             only_schemas: An array with the schemas you want to watch
             freeze_schema: If true do not support ALTER TABLE. It's faster.
         """
-        self.__connection_settings = connection_settings
-        self.__connection_settings["charset"] = "utf8"
+        self._connection_settings = connection_settings
+        self._connection_settings["charset"] = "utf8"
 
-        self.__connected_stream = False
-        self.__connected_ctl = False
-        self.__resume_stream = resume_stream
-        self.__blocking = blocking
+        self._connected_stream = False
+        self._connected_ctl = False
+        self._resume_stream = resume_stream
+        self._blocking = blocking
 
-        self.__only_tables = only_tables
-        self.__only_schemas = only_schemas
-        self.__freeze_schema = freeze_schema
-        self.__allowed_events = self._allowed_event_list(
+        self._only_tables = only_tables
+        self._only_schemas = only_schemas
+        self._freeze_schema = freeze_schema
+        self._allowed_events = self._allowed_event_list(
             only_events, ignored_events, filter_non_implemented_events)
 
         # We can't filter on packet level TABLE_MAP and rotate event because
         # we need them for handling other operations
-        self.__allowed_events_in_packet = frozenset(
-            [TableMapEvent, RotateEvent]).union(self.__allowed_events)
+        self._allowed_events_in_packet = frozenset(
+            [TableMapEvent, RotateEvent]).union(self._allowed_events)
 
-        self.__server_id = server_id
-        self.__use_checksum = False
+        self._server_id = server_id
+        self._use_checksum = False
 
         # Store table meta information
         self.table_map = {}
@@ -87,33 +87,33 @@ class BinLogStreamReader(object):
 
     @asyncio.coroutine
     def _connect(self):
-        if not self.__connected_stream:
-            yield from self.__connect_to_stream()
+        if not self._connected_stream:
+            yield from self._connect_to_stream()
 
-        if not self.__connected_ctl:
-            yield from self.__connect_to_ctl()
+        if not self._connected_ctl:
+            yield from self._connect_to_ctl()
 
     def close(self):
-        if self.__connected_stream:
+        if self._connected_stream:
             self._stream_connection.close()
-            self.__connected_stream = False
-        if self.__connected_ctl:
+            self._connected_stream = False
+        if self._connected_ctl:
             # break reference cycle between stream reader and underlying
             # mysql connection object
             self._ctl_connection._get_table_information = None
             self._ctl_connection.close()
-            self.__connected_ctl = False
+            self._connected_ctl = False
 
-    def __connect_to_ctl(self):
-        self._ctl_connection_settings = dict(self.__connection_settings)
+    def _connect_to_ctl(self):
+        self._ctl_connection_settings = dict(self._connection_settings)
         self._ctl_connection_settings["db"] = "information_schema"
         self._ctl_connection_settings["cursorclass"] = DictCursor
         self._ctl_connection = yield from aiomysql.connect(**self._ctl_connection_settings)
-        self._ctl_connection._get_table_information = self.__get_table_information
-        self.__connected_ctl = True
+        self._ctl_connection._get_table_information = self._get_table_information
+        self._connected_ctl = True
 
     @asyncio.coroutine
-    def __checksum_enabled(self):
+    def _checksum_enabled(self):
         """Return True if binlog-checksum = CRC32. Only for MySQL > 5.6"""
         cur = yield from self._stream_connection.cursor()
         yield from cur.execute("SHOW GLOBAL VARIABLES LIKE 'BINLOG_CHECKSUM'")
@@ -128,18 +128,18 @@ class BinLogStreamReader(object):
         return True
 
     @asyncio.coroutine
-    def __connect_to_stream(self):
+    def _connect_to_stream(self):
         # log_pos (4) -- position in the binlog-file to start the stream with
         # flags (2) BINLOG_DUMP_NON_BLOCK (0 or 1)
         # server_id (4) -- server id of this slave
         # log_file (string.EOF) -- filename of the binlog on the master
-        self._stream_connection = yield from aiomysql.connect(**self.__connection_settings)
+        self._stream_connection = yield from aiomysql.connect(**self._connection_settings)
 
-        self.__use_checksum = self.__checksum_enabled()
+        self._use_checksum = self._checksum_enabled()
 
         # If checksum is enabled we need to inform the server about the that
         # we support it
-        if self.__use_checksum:
+        if self._use_checksum:
             cur = yield from self._stream_connection.cursor()
             yield from cur.execute("set @master_binlog_checksum= @@global.binlog_checksum")
             yield from cur.close()
@@ -157,17 +157,17 @@ class BinLogStreamReader(object):
             prelude = struct.pack('<i', len(self.log_file) + 11) \
                 + int2byte(COM_BINLOG_DUMP)
 
-            if self.__resume_stream:
+            if self._resume_stream:
                 prelude += struct.pack('<I', self.log_pos)
             else:
                 prelude += struct.pack('<I', 4)
 
-            if self.__blocking:
+            if self._blocking:
                 prelude += struct.pack('<h', 0)
             else:
                 prelude += struct.pack('<h', 1)
 
-            prelude += struct.pack('<I', self.__server_id)
+            prelude += struct.pack('<I', self._server_id)
             prelude += self.log_file.encode()
         else:
             # Format for mysql packet master_auto_position
@@ -219,7 +219,7 @@ class BinLogStreamReader(object):
             # binlog_flags = 0 (2 bytes)
             prelude += struct.pack('<H', 0)
             # server_id (4 bytes)
-            prelude += struct.pack('<I', self.__server_id)
+            prelude += struct.pack('<I', self._server_id)
             # binlog_name_info_size (4 bytes)
             prelude += struct.pack('<I', 3)
             # empty_binlog_name (4 bytes)
@@ -233,18 +233,17 @@ class BinLogStreamReader(object):
             prelude += gtid_set.encoded()
 
         self._stream_connection._write_bytes(prelude)
-        self.__connected_stream = True
+        self._connected_stream = True
 
     def fetchone(self):
         while True:
-
 
             try:
                 pkt = yield from self._stream_connection._read_packet()
             except aiomysql.OperationalError as error:
                 code, message = error.args
                 if code in MYSQL_EXPECTED_ERROR_CODES:
-                    self.__connected_stream = False
+                    self._connected_stream = False
                     continue
 
             if pkt.is_eof_packet():
@@ -255,11 +254,11 @@ class BinLogStreamReader(object):
 
             binlog_event = BinLogPacketWrapper(pkt, self.table_map,
                                                self._ctl_connection,
-                                               self.__use_checksum,
-                                               self.__allowed_events_in_packet,
-                                               self.__only_tables,
-                                               self.__only_schemas,
-                                               self.__freeze_schema)
+                                               self._use_checksum,
+                                               self._allowed_events_in_packet,
+                                               self._only_tables,
+                                               self._only_schemas,
+                                               self._freeze_schema)
 
 
             if binlog_event.event_type == TABLE_MAP_EVENT and \
@@ -272,7 +271,8 @@ class BinLogStreamReader(object):
             if binlog_event.event_type == ROTATE_EVENT:
                 self.log_pos = binlog_event.event.position
                 self.log_file = binlog_event.event.next_binlog
-                # Table Id in binlog are NOT persistent in MySQL - they are in-memory identifiers
+                # Table Id in binlog are NOT persistent in MySQL - they are
+                # in-memory identifiers
                 # that means that when MySQL master restarts, it will reuse same table id for different tables
                 # which will cause errors for us since our in-memory map will try to decode row data with
                 # wrong table schema.
@@ -287,13 +287,15 @@ class BinLogStreamReader(object):
 
             # event is none if we have filter it on packet level
             # we filter also not allowed events
-            if binlog_event.event is None or (binlog_event.event.__class__ not in self.__allowed_events):
+            if binlog_event.event is None or (binlog_event.event.__class__ not in self._allowed_events):
                 continue
 
             return binlog_event.event
 
-    def _allowed_event_list(self, only_events, ignored_events,
-                            filter_non_implemented_events):
+    def _allowed_event_list(self,
+                           only_events,
+                           ignored_events,
+                           filter_non_implemented_events):
         if only_events is not None:
             events = set(only_events)
         else:
@@ -320,11 +322,11 @@ class BinLogStreamReader(object):
         return frozenset(events)
 
     @asyncio.coroutine
-    def __get_table_information(self, schema, table):
+    def _get_table_information(self, schema, table):
         for i in range(1, 3):
             try:
-                if not self.__connected_ctl:
-                    self.__connect_to_ctl()
+                if not self._connected_ctl:
+                    self._connect_to_ctl()
 
                 cur = yield from self._ctl_connection.cursor()
                 yield from cur.execute("""
@@ -341,7 +343,7 @@ class BinLogStreamReader(object):
             except aiomysql.OperationalError as error:
                 code, message = error.args
                 if code in MYSQL_EXPECTED_ERROR_CODES:
-                    self.__connected_ctl = False
+                    self._connected_ctl = False
                     continue
                 else:
                     raise error

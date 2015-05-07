@@ -12,11 +12,11 @@ class Column(object):
     def __init__(self, *args, **kwargs):
         self.data = {}
         if len(args) == 3:
-            self.__parse_column_definition(*args)
+            self._parse_column_definition(*args)
         else:
             self.data = kwargs
 
-    def __parse_column_definition(self, column_type, column_schema, packet):
+    def _parse_column_definition(self, column_type, column_schema, packet):
         self.data["type"] = column_type
         self.data["name"] = column_schema["COLUMN_NAME"]
         self.data["collation_name"] = column_schema["COLLATION_NAME"]
@@ -33,7 +33,7 @@ class Column(object):
             self.data["unsigned"] = True
         if self.type == FIELD_TYPE.VAR_STRING or \
                 self.type == FIELD_TYPE.STRING:
-            self.__read_string_metadata(packet, column_schema)
+            self._read_string_metadata(packet, column_schema)
         elif self.type == FIELD_TYPE.VARCHAR:
             self.data["max_length"] = struct.unpack('<H', packet.read(2))[0]
         elif self.type == FIELD_TYPE.BLOB:
@@ -62,7 +62,7 @@ class Column(object):
                 column_schema["COLUMN_TYPE"] == "tinyint(1)":
             self.data["type_is_bool"] = True
 
-    def __read_string_metadata(self, packet, column_schema):
+    def _read_string_metadata(self, packet, column_schema):
         metadata = (packet.read_uint8() << 8) + packet.read_uint8()
         real_type = metadata >> 8
         if real_type == FIELD_TYPE.SET or real_type == FIELD_TYPE.ENUM:
