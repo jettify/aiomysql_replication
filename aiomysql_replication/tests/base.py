@@ -1,8 +1,7 @@
-# -*- coding: utf-8 -*-
-
+import aiomysql
 import pymysql
 import copy
-from aiomysql_replication import BinLogStreamReader
+from aiomysql_replication import BinLogStreamReader, create_binlog_stream
 import os
 
 
@@ -44,13 +43,15 @@ class PyMySQLReplicationTestCase(BaseTest):
         return []
 
     def setUp(self):
+        super().setUp()
         self.database = {
             "host": "localhost",
             "user": "root",
-            "passwd": "",
+            "password": "",
             "use_unicode": True,
             "charset": "utf8",
-            "db": "pymysqlreplication_test"
+            "db": "pymysqlreplication_test",
+            "loop": self.loop,
         }
         if os.getenv("TRAVIS") is not None:
             self.database["user"] = "travis"
@@ -59,7 +60,7 @@ class PyMySQLReplicationTestCase(BaseTest):
         self.conn_control = None
         db = copy.copy(self.database)
         db["db"] = None
-
+        db['loop'] = self.loop
         self.loop.run_until_complete(self._prepare(db))
 
     @asyncio.coroutine
@@ -78,11 +79,14 @@ class PyMySQLReplicationTestCase(BaseTest):
         """Return the MySQL version of the server
         If version is 5.6.10-log the result is 5.6.10
         """
-        return self.execute("SELECT VERSION()").fetchone()[0].split('-')[0]
+        cursor = yield from self.execute("SELECT VERSION()")
+        data = yield from cursor.fetchone()
+        return data[0].split('-')[0]
 
     @asyncio.coroutine
     def isMySQL56AndMore(self):
-        version = float(self.getMySQLVersion().rsplit('.', 1)[0])
+        d = yield from self.getMySQLVersion()
+        version = float(d.rsplit('.', 1)[0])
         if version >= 5.6:
             return True
         return False
@@ -91,7 +95,7 @@ class PyMySQLReplicationTestCase(BaseTest):
     def connect_conn_control(self, db):
         if self.conn_control is not None:
             self.conn_control.close()
-        self.conn_control = pymysql.connect(**db)
+        self.conn_control = yield from aiomysql.connect(**db)
 
     def tearDown(self):
         self.conn_control.close()
@@ -101,8 +105,8 @@ class PyMySQLReplicationTestCase(BaseTest):
 
     @asyncio.coroutine
     def execute(self, query):
-        c = self.conn_control.cursor()
-        c.execute(query)
+        c = yield from self.conn_control.cursor()
+        yield from c.execute(query)
         return c
 
     @asyncio.coroutine
@@ -110,5 +114,6 @@ class PyMySQLReplicationTestCase(BaseTest):
         yield from self.execute("RESET MASTER")
         if self.stream is not None:
             self.stream.close()
-        self.stream = BinLogStreamReader(self.database, server_id=1024,
-                                         ignored_events=self.ignoredEvents())
+        self.stream = yield from create_binlog_stream(self.database, server_id=1024,
+                                         ignored_events=self.ignoredEvents(),
+                                         loop=self.loop)

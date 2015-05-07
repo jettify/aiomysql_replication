@@ -38,7 +38,7 @@ def consume_events():
 database = {
     "host": "localhost",
     "user": "root",
-    "passwd": "",
+    "password": "",
     "use_unicode": True,
     "charset": "utf8",
     "db": "pymysqlreplication_test"
