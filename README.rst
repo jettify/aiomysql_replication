@@ -39,6 +39,14 @@ Basic Example
     loop.run_until_complete(test_example())
 
 
+Use cases
+---------
+
+* MySQL to NoSQL database replication
+* MySQL to search engine replication
+* Invalidate cache when something change in database
+* Audit
+* Real time analytics
 
 
 Requirements
@@ -47,9 +55,11 @@ Requirements
 * Python_ 3.3+
 * asyncio_ or Python_ 3.4+
 * PyMySQL_
+* aiomysql_
 
 
 .. _Python: https://www.python.org
 .. _asyncio: http://docs.python.org/3.4/library/asyncio.html
 .. _PyMySQL: https://github.com/PyMySQL/PyMySQL
 .. _python-mysql-replication: https://github.com/noplay/python-mysql-replication
+.. _aiomysql: https://github.com/aio-libs/aiomysql
