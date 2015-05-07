@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 
+import asyncio
 import struct
 import decimal
 import datetime
-
 from pymysql.util import byte2int
 
 from .event import BinLogEvent
@@ -13,15 +13,17 @@ from .column import Column
 from .table import Table
 from .bitmap import BitCount, BitGet
 
+
 class RowsEvent(BinLogEvent):
-    def __init__(self, from_packet, event_size, table_map, ctl_connection, **kwargs):
+    def __init__(self, from_packet, event_size, table_map, ctl_connection,
+                 **kwargs):
         super(RowsEvent, self).__init__(from_packet, event_size, table_map,
                                         ctl_connection, **kwargs)
         self.__rows = None
         self.__only_tables = kwargs["only_tables"]
         self.__only_schemas = kwargs["only_schemas"]
 
-        #Header
+        # Header
         self.table_id = self._read_table_id()
 
         # Additional information
@@ -29,7 +31,7 @@ class RowsEvent(BinLogEvent):
             self.primary_key = table_map[self.table_id].data["primary_key"]
             self.schema = self.table_map[self.table_id].schema
             self.table = self.table_map[self.table_id].table
-        except KeyError: #If we have filter the corresponding TableMap Event
+        except KeyError:  #If we have filter the corresponding TableMap Event
             self._processed = False
             return
 
@@ -43,10 +45,12 @@ class RowsEvent(BinLogEvent):
 
         #Event V2
         if self.event_type == BINLOG.WRITE_ROWS_EVENT_V2 or \
-                self.event_type == BINLOG.DELETE_ROWS_EVENT_V2 or \
-                self.event_type == BINLOG.UPDATE_ROWS_EVENT_V2:
-                self.flags, self.extra_data_length = struct.unpack('<HH', self.packet.read(4))
-                self.extra_data = self.packet.read(self.extra_data_length / 8)
+                        self.event_type == BINLOG.DELETE_ROWS_EVENT_V2 or \
+                        self.event_type == BINLOG.UPDATE_ROWS_EVENT_V2:
+            self.flags, self.extra_data_length = struct.unpack('<HH',
+                                                               self.packet.read(
+                                                                   4))
+            self.extra_data = self.packet.read(self.extra_data_length / 8)
         else:
             self.flags = struct.unpack('<H', self.packet.read(2))[0]
 
@@ -60,7 +64,7 @@ class RowsEvent(BinLogEvent):
             bit = ord(bit)
         return bit & (1 << (position % 8))
 
-    def _read_column_data(self,  cols_bitmap):
+    def _read_column_data(self, cols_bitmap):
         """Use for WRITE, UPDATE and DELETE events.
         Return an array of column data
         """
@@ -108,7 +112,7 @@ class RowsEvent(BinLogEvent):
             elif column.type == FIELD_TYPE.DOUBLE:
                 values[name] = struct.unpack("<d", self.packet.read(8))[0]
             elif column.type == FIELD_TYPE.VARCHAR or \
-                    column.type == FIELD_TYPE.STRING:
+                            column.type == FIELD_TYPE.STRING:
                 if column.max_length > 255:
                     values[name] = self.__read_string(2, column)
                 else:
@@ -397,9 +401,11 @@ class DeleteRowsEvent(RowsEvent):
     For each row you have a hash with a single key: values which contain the data of the removed line.
     """
 
-    def __init__(self, from_packet, event_size, table_map, ctl_connection, **kwargs):
+    def __init__(self, from_packet, event_size, table_map, ctl_connection,
+                 **kwargs):
         super(DeleteRowsEvent, self).__init__(from_packet, event_size,
-                                              table_map, ctl_connection, **kwargs)
+                                              table_map, ctl_connection,
+                                              **kwargs)
         if self._processed:
             self.columns_present_bitmap = self.packet.read(
                 (self.number_of_columns + 7) / 8)
@@ -425,9 +431,11 @@ class WriteRowsEvent(RowsEvent):
     For each row you have a hash with a single key: values which contain the data of the new line.
     """
 
-    def __init__(self, from_packet, event_size, table_map, ctl_connection, **kwargs):
+    def __init__(self, from_packet, event_size, table_map, ctl_connection,
+                 **kwargs):
         super(WriteRowsEvent, self).__init__(from_packet, event_size,
-                                             table_map, ctl_connection, **kwargs)
+                                             table_map, ctl_connection,
+                                             **kwargs)
         if self._processed:
             self.columns_present_bitmap = self.packet.read(
                 (self.number_of_columns + 7) / 8)
@@ -458,11 +466,13 @@ class UpdateRowsEvent(RowsEvent):
     http://dev.mysql.com/doc/refman/5.6/en/replication-options-binary-log.html#sysvar_binlog_row_image
     """
 
-    def __init__(self, from_packet, event_size, table_map, ctl_connection, **kwargs):
+    def __init__(self, from_packet, event_size, table_map, ctl_connection,
+                 **kwargs):
         super(UpdateRowsEvent, self).__init__(from_packet, event_size,
-                                              table_map, ctl_connection, **kwargs)
+                                              table_map, ctl_connection,
+                                              **kwargs)
         if self._processed:
-            #Body
+            # Body
             self.columns_present_bitmap = self.packet.read(
                 (self.number_of_columns + 7) / 8)
             self.columns_present_bitmap2 = self.packet.read(
@@ -471,9 +481,11 @@ class UpdateRowsEvent(RowsEvent):
     def _fetch_one_row(self):
         row = {}
 
-        row["before_values"] = self._read_column_data(self.columns_present_bitmap)
+        row["before_values"] = self._read_column_data(
+            self.columns_present_bitmap)
 
-        row["after_values"] = self._read_column_data(self.columns_present_bitmap2)
+        row["after_values"] = self._read_column_data(
+            self.columns_present_bitmap2)
         return row
 
     def _dump(self):
@@ -494,7 +506,8 @@ class TableMapEvent(BinLogEvent):
     A end user of the lib should have no usage of this
     """
 
-    def __init__(self, from_packet, event_size, table_map, ctl_connection, **kwargs):
+    def __init__(self, from_packet, event_size, table_map, ctl_connection,
+                 **kwargs):
         super(TableMapEvent, self).__init__(from_packet, event_size,
                                             table_map, ctl_connection, **kwargs)
         self.__only_tables = kwargs["only_tables"]
@@ -529,10 +542,18 @@ class TableMapEvent(BinLogEvent):
 
         self.columns = []
 
-        if self.table_id in table_map:
-            self.column_schemas = table_map[self.table_id].column_schemas
+        # TODO: fix this
+        self._table_map = table_map
+        self._from_packet = from_packet
+
+
+    @asyncio.coroutine
+    def load_table_schema(self):
+        if self.table_id in self._table_map:
+            self.column_schemas = self.table_map[self.table_id].column_schemas
         else:
-            self.column_schemas = self._ctl_connection._get_table_information(self.schema, self.table)
+            self.column_schemas = yield from self._ctl_connection._get_table_information(
+                self.schema, self.table)
 
         # Read columns meta data
         column_types = list(self.packet.read(self.column_count))
@@ -540,7 +561,8 @@ class TableMapEvent(BinLogEvent):
         for i in range(0, len(column_types)):
             column_type = column_types[i]
             column_schema = self.column_schemas[i]
-            col = Column(byte2int(column_type), column_schema, from_packet)
+
+            col = Column(byte2int(column_type), column_schema, self._from_packet)
             self.columns.append(col)
 
         self.table_obj = Table(self.column_schemas, self.table_id, self.schema,

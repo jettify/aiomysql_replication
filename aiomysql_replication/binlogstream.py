@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
+import asyncio
 
-import pymysql
+# import pymysql
 import struct
+import aiomysql
 
 from pymysql.constants.COMMAND import COM_BINLOG_DUMP
-from pymysql.cursors import DictCursor
+from aiomysql import DictCursor
 from pymysql.util import int2byte
 
 from .packet import BinLogPacketWrapper
@@ -16,28 +18,30 @@ from .event import (
 from .row_event import (
     UpdateRowsEvent, WriteRowsEvent, DeleteRowsEvent, TableMapEvent)
 
-try:
-    from pymysql.constants.COMMAND import COM_BINLOG_DUMP_GTID
-except ImportError:
-    # Handle old pymysql versions
-    # See: https://github.com/PyMySQL/PyMySQL/pull/261
-    COM_BINLOG_DUMP_GTID = 0x1e
+from pymysql.constants.COMMAND import COM_BINLOG_DUMP_GTID
+
 
 # 2013 Connection Lost
 # 2006 MySQL server has gone away
 MYSQL_EXPECTED_ERROR_CODES = [2013, 2006]
 
 
+def create_binlog_stream(*args, **kwargs):
+    reader = BinLogStreamReader(*args, **kwargs)
+    yield from reader._connect()
+    return reader
+
+
 class BinLogStreamReader(object):
     """Connect to replication stream and read event
     """
 
-    def __init__(self, connection_settings, server_id, resume_stream=False,
+    def __init__(self, connection_settings, server_id, *, resume_stream=False,
                  blocking=False, only_events=None, log_file=None, log_pos=None,
                  filter_non_implemented_events=True,
                  ignored_events=None, auto_position=None,
                  only_tables=None, only_schemas=None,
-                 freeze_schema=False):
+                 freeze_schema=False, loop):
         """
         Attributes:
             resume_stream: Start for event from position or the latest event of
@@ -79,6 +83,15 @@ class BinLogStreamReader(object):
         self.log_pos = log_pos
         self.log_file = log_file
         self.auto_position = auto_position
+        self._loop = loop
+
+    @asyncio.coroutine
+    def _connect(self):
+        if not self.__connected_stream:
+            yield from self.__connect_to_stream()
+
+        if not self.__connected_ctl:
+            yield from self.__connect_to_ctl()
 
     def close(self):
         if self.__connected_stream:
@@ -95,16 +108,17 @@ class BinLogStreamReader(object):
         self._ctl_connection_settings = dict(self.__connection_settings)
         self._ctl_connection_settings["db"] = "information_schema"
         self._ctl_connection_settings["cursorclass"] = DictCursor
-        self._ctl_connection = pymysql.connect(**self._ctl_connection_settings)
+        self._ctl_connection = yield from aiomysql.connect(**self._ctl_connection_settings)
         self._ctl_connection._get_table_information = self.__get_table_information
         self.__connected_ctl = True
 
+    @asyncio.coroutine
     def __checksum_enabled(self):
         """Return True if binlog-checksum = CRC32. Only for MySQL > 5.6"""
-        cur = self._stream_connection.cursor()
-        cur.execute("SHOW GLOBAL VARIABLES LIKE 'BINLOG_CHECKSUM'")
-        result = cur.fetchone()
-        cur.close()
+        cur = yield from self._stream_connection.cursor()
+        yield from cur.execute("SHOW GLOBAL VARIABLES LIKE 'BINLOG_CHECKSUM'")
+        result = yield from cur.fetchone()
+        yield from cur.close()
 
         if result is None:
             return False
@@ -113,30 +127,32 @@ class BinLogStreamReader(object):
             return False
         return True
 
+    @asyncio.coroutine
     def __connect_to_stream(self):
         # log_pos (4) -- position in the binlog-file to start the stream with
         # flags (2) BINLOG_DUMP_NON_BLOCK (0 or 1)
         # server_id (4) -- server id of this slave
         # log_file (string.EOF) -- filename of the binlog on the master
-        self._stream_connection = pymysql.connect(**self.__connection_settings)
+        self._stream_connection = yield from aiomysql.connect(**self.__connection_settings)
 
         self.__use_checksum = self.__checksum_enabled()
 
         # If checksum is enabled we need to inform the server about the that
         # we support it
         if self.__use_checksum:
-            cur = self._stream_connection.cursor()
-            cur.execute("set @master_binlog_checksum= @@global.binlog_checksum")
-            cur.close()
+            cur = yield from self._stream_connection.cursor()
+            yield from cur.execute("set @master_binlog_checksum= @@global.binlog_checksum")
+            yield from cur.close()
 
         if not self.auto_position:
             # only when log_file and log_pos both provided, the position info is
             # valid, if not, get the current position from master
             if self.log_file is None or self.log_pos is None:
-                cur = self._stream_connection.cursor()
-                cur.execute("SHOW MASTER STATUS")
-                self.log_file, self.log_pos = cur.fetchone()[:2]
-                cur.close()
+                cur = yield from self._stream_connection.cursor()
+                yield from cur.execute("SHOW MASTER STATUS")
+                data = yield from cur.fetchone()
+                self.log_file, self.log_pos = data[:2]
+                yield from cur.close()
 
             prelude = struct.pack('<i', len(self.log_file) + 11) \
                 + int2byte(COM_BINLOG_DUMP)
@@ -216,27 +232,16 @@ class BinLogStreamReader(object):
             # encoded_data
             prelude += gtid_set.encoded()
 
-        if pymysql.__version__ < "0.6":
-            self._stream_connection.wfile.write(prelude)
-            self._stream_connection.wfile.flush()
-        else:
-            self._stream_connection._write_bytes(prelude)
+        self._stream_connection._write_bytes(prelude)
         self.__connected_stream = True
 
     def fetchone(self):
         while True:
-            if not self.__connected_stream:
-                self.__connect_to_stream()
 
-            if not self.__connected_ctl:
-                self.__connect_to_ctl()
 
             try:
-                if pymysql.__version__ < "0.6":
-                    pkt = self._stream_connection.read_packet()
-                else:
-                    pkt = self._stream_connection._read_packet()
-            except pymysql.OperationalError as error:
+                pkt = yield from self._stream_connection._read_packet()
+            except aiomysql.OperationalError as error:
                 code, message = error.args
                 if code in MYSQL_EXPECTED_ERROR_CODES:
                     self.__connected_stream = False
@@ -256,8 +261,11 @@ class BinLogStreamReader(object):
                                                self.__only_schemas,
                                                self.__freeze_schema)
 
+
             if binlog_event.event_type == TABLE_MAP_EVENT and \
                     binlog_event.event is not None:
+                yield from binlog_event.event.load_table_schema()
+
                 self.table_map[binlog_event.event.table_id] = \
                     binlog_event.event.get_table()
 
@@ -311,14 +319,15 @@ class BinLogStreamReader(object):
                 pass
         return frozenset(events)
 
+    @asyncio.coroutine
     def __get_table_information(self, schema, table):
         for i in range(1, 3):
             try:
                 if not self.__connected_ctl:
                     self.__connect_to_ctl()
 
-                cur = self._ctl_connection.cursor()
-                cur.execute("""
+                cur = yield from self._ctl_connection.cursor()
+                yield from cur.execute("""
                     SELECT
                         COLUMN_NAME, COLLATION_NAME, CHARACTER_SET_NAME,
                         COLUMN_COMMENT, COLUMN_TYPE, COLUMN_KEY
@@ -328,14 +337,14 @@ class BinLogStreamReader(object):
                         table_schema = %s AND table_name = %s
                     """, (schema, table))
 
-                return cur.fetchall()
-            except pymysql.OperationalError as error:
+                return (yield from cur.fetchall())
+            except aiomysql.OperationalError as error:
                 code, message = error.args
                 if code in MYSQL_EXPECTED_ERROR_CODES:
                     self.__connected_ctl = False
                     continue
                 else:
                     raise error
-
-    def __iter__(self):
-        return iter(self.fetchone, None)
+    # TODO: fix  PEP492
+    # def __iter__(self):
+    #     return iter(self.fetchone, None)
