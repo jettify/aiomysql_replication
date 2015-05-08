@@ -3,8 +3,9 @@
 import struct
 
 from pymysql.util import byte2int
-
-from aiomysql_replication import constants, event, row_event
+from . import event, row_event
+from . import row_event
+from .consts import BinLog
 
 # Constants from PyMYSQL source code
 NULL_COLUMN = 251
@@ -27,24 +28,24 @@ class BinLogPacketWrapper(object):
 
     _event_map = {
         # event
-        constants.QUERY_EVENT: event.QueryEvent,
-        constants.ROTATE_EVENT: event.RotateEvent,
-        constants.FORMAT_DESCRIPTION_EVENT: event.FormatDescriptionEvent,
-        constants.XID_EVENT: event.XidEvent,
-        constants.INTVAR_EVENT: event.NotImplementedEvent,
-        constants.GTID_LOG_EVENT: event.GtidEvent,
-        constants.STOP_EVENT: event.StopEvent,
+        BinLog.QUERY_EVENT: event.QueryEvent,
+        BinLog.ROTATE_EVENT: event.RotateEvent,
+        BinLog.FORMAT_DESCRIPTION_EVENT: event.FormatDescriptionEvent,
+        BinLog.XID_EVENT: event.XidEvent,
+        BinLog.INTVAR_EVENT: event.NotImplementedEvent,
+        BinLog.GTID_LOG_EVENT: event.GtidEvent,
+        BinLog.STOP_EVENT: event.StopEvent,
         # row_event
-        constants.UPDATE_ROWS_EVENT_V1: row_event.UpdateRowsEvent,
-        constants.WRITE_ROWS_EVENT_V1: row_event.WriteRowsEvent,
-        constants.DELETE_ROWS_EVENT_V1: row_event.DeleteRowsEvent,
-        constants.UPDATE_ROWS_EVENT_V2: row_event.UpdateRowsEvent,
-        constants.WRITE_ROWS_EVENT_V2: row_event.WriteRowsEvent,
-        constants.DELETE_ROWS_EVENT_V2: row_event.DeleteRowsEvent,
-        constants.TABLE_MAP_EVENT: row_event.TableMapEvent,
+        BinLog.UPDATE_ROWS_EVENT_V1: row_event.UpdateRowsEvent,
+        BinLog.WRITE_ROWS_EVENT_V1: row_event.WriteRowsEvent,
+        BinLog.DELETE_ROWS_EVENT_V1: row_event.DeleteRowsEvent,
+        BinLog.UPDATE_ROWS_EVENT_V2: row_event.UpdateRowsEvent,
+        BinLog.WRITE_ROWS_EVENT_V2: row_event.WriteRowsEvent,
+        BinLog.DELETE_ROWS_EVENT_V2: row_event.DeleteRowsEvent,
+        BinLog.TABLE_MAP_EVENT: row_event.TableMapEvent,
         #5.6 GTID enabled replication events
-        constants.ANONYMOUS_GTID_LOG_EVENT: event.NotImplementedEvent,
-        constants.PREVIOUS_GTIDS_LOG_EVENT: event.NotImplementedEvent
+        BinLog.ANONYMOUS_GTID_LOG_EVENT: event.NotImplementedEvent,
+        BinLog.PREVIOUS_GTIDS_LOG_EVENT: event.NotImplementedEvent
 
     }
 

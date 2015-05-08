@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
 
 import asyncio
-import struct
 import decimal
 import datetime
+
+import struct
 from pymysql.util import byte2int
 
 from .event import BinLogEvent
-from .constants import FIELD_TYPE
-from .constants import BINLOG
+from .consts import FieldType, BinLog
 from .column import Column
 from .table import Table
 from .bitmap import bit_count, bit_get
@@ -44,9 +44,9 @@ class RowsEvent(BinLogEvent):
 
 
         #Event V2
-        if self.event_type == BINLOG.WRITE_ROWS_EVENT_V2 or \
-                        self.event_type == BINLOG.DELETE_ROWS_EVENT_V2 or \
-                        self.event_type == BINLOG.UPDATE_ROWS_EVENT_V2:
+        if self.event_type == BinLog.WRITE_ROWS_EVENT_V2 or \
+                        self.event_type == BinLog.DELETE_ROWS_EVENT_V2 or \
+                        self.event_type == BinLog.UPDATE_ROWS_EVENT_V2:
             self.flags, self.extra_data_length = struct.unpack('<HH',
                                                                self.packet.read(
                                                                    4))
@@ -87,70 +87,70 @@ class RowsEvent(BinLogEvent):
 
             if self.__is_null(null_bitmap, nullBitmapIndex):
                 values[name] = None
-            elif column.type == FIELD_TYPE.TINY:
+            elif column.type == FieldType.TINY:
                 if unsigned:
                     values[name] = struct.unpack("<B", self.packet.read(1))[0]
                 else:
                     values[name] = struct.unpack("<b", self.packet.read(1))[0]
-            elif column.type == FIELD_TYPE.SHORT:
+            elif column.type == FieldType.SHORT:
                 if unsigned:
                     values[name] = struct.unpack("<H", self.packet.read(2))[0]
                 else:
                     values[name] = struct.unpack("<h", self.packet.read(2))[0]
-            elif column.type == FIELD_TYPE.LONG:
+            elif column.type == FieldType.LONG:
                 if unsigned:
                     values[name] = struct.unpack("<I", self.packet.read(4))[0]
                 else:
                     values[name] = struct.unpack("<i", self.packet.read(4))[0]
-            elif column.type == FIELD_TYPE.INT24:
+            elif column.type == FieldType.INT24:
                 if unsigned:
                     values[name] = self.packet.read_uint24()
                 else:
                     values[name] = self.packet.read_int24()
-            elif column.type == FIELD_TYPE.FLOAT:
+            elif column.type == FieldType.FLOAT:
                 values[name] = struct.unpack("<f", self.packet.read(4))[0]
-            elif column.type == FIELD_TYPE.DOUBLE:
+            elif column.type == FieldType.DOUBLE:
                 values[name] = struct.unpack("<d", self.packet.read(8))[0]
-            elif column.type == FIELD_TYPE.VARCHAR or \
-                            column.type == FIELD_TYPE.STRING:
+            elif column.type == FieldType.VARCHAR or \
+                            column.type == FieldType.STRING:
                 if column.max_length > 255:
                     values[name] = self.__read_string(2, column)
                 else:
                     values[name] = self.__read_string(1, column)
-            elif column.type == FIELD_TYPE.NEWDECIMAL:
+            elif column.type == FieldType.NEWDECIMAL:
                 values[name] = self.__read_new_decimal(column)
-            elif column.type == FIELD_TYPE.BLOB:
+            elif column.type == FieldType.BLOB:
                 values[name] = self.__read_string(column.length_size, column)
-            elif column.type == FIELD_TYPE.DATETIME:
+            elif column.type == FieldType.DATETIME:
                 values[name] = self.__read_datetime()
-            elif column.type == FIELD_TYPE.TIME:
+            elif column.type == FieldType.TIME:
                 values[name] = self.__read_time()
-            elif column.type == FIELD_TYPE.DATE:
+            elif column.type == FieldType.DATE:
                 values[name] = self.__read_date()
-            elif column.type == FIELD_TYPE.TIMESTAMP:
+            elif column.type == FieldType.TIMESTAMP:
                 values[name] = datetime.datetime.fromtimestamp(
                     self.packet.read_uint32())
 
             # For new date format:
-            elif column.type == FIELD_TYPE.DATETIME2:
+            elif column.type == FieldType.DATETIME2:
                 values[name] = self.__read_datetime2(column)
-            elif column.type == FIELD_TYPE.TIME2:
+            elif column.type == FieldType.TIME2:
                 values[name] = self.__read_time2(column)
-            elif column.type == FIELD_TYPE.TIMESTAMP2:
+            elif column.type == FieldType.TIMESTAMP2:
                 values[name] = self.__add_fsp_to_time(
                     datetime.datetime.fromtimestamp(
                         self.packet.read_int_be_by_size(4)), column)
-            elif column.type == FIELD_TYPE.LONGLONG:
+            elif column.type == FieldType.LONGLONG:
                 if unsigned:
                     values[name] = self.packet.read_uint64()
                 else:
                     values[name] = self.packet.read_int64()
-            elif column.type == FIELD_TYPE.YEAR:
+            elif column.type == FieldType.YEAR:
                 values[name] = self.packet.read_uint8() + 1900
-            elif column.type == FIELD_TYPE.ENUM:
+            elif column.type == FieldType.ENUM:
                 values[name] = column.enum_values[
                     self.packet.read_uint_by_size(column.size) - 1]
-            elif column.type == FIELD_TYPE.SET:
+            elif column.type == FieldType.SET:
                 # We read set columns as a bitmap telling us which options
                 # are enabled
                 bit_mask = self.packet.read_uint_by_size(column.size)
@@ -159,9 +159,9 @@ class RowsEvent(BinLogEvent):
                     if bit_mask & 2 ** idx
                 ) or None
 
-            elif column.type == FIELD_TYPE.BIT:
+            elif column.type == FieldType.BIT:
                 values[name] = self.__read_bit(column)
-            elif column.type == FIELD_TYPE.GEOMETRY:
+            elif column.type == FieldType.GEOMETRY:
                 values[name] = self.packet.read_length_coded_pascal_string(
                     column.length_size)
             else:

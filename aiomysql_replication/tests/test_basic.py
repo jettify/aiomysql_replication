@@ -1,7 +1,7 @@
 from aiomysql_replication.tests import base
-from aiomysql_replication import BinLogStreamReader, create_binlog_stream
+from aiomysql_replication import create_binlog_stream
 from aiomysql_replication.event import *
-from aiomysql_replication.constants.BINLOG import *
+from aiomysql_replication.consts import BinLog
 from aiomysql_replication.row_event import *
 from aiomysql_replication.tests.base import run_until_complete
 
@@ -185,7 +185,7 @@ class TestBasicBinLogStreamReader(base.PyMySQLReplicationTestCase):
 
         event = yield from self.stream.fetchone()
         # if self.isMySQL56AndMore():
-        self.assertEqual(event.event_type, WRITE_ROWS_EVENT_V2)
+        self.assertEqual(event.event_type, BinLog.WRITE_ROWS_EVENT_V2)
         # else:
         # self.assertEqual(event.event_type, WRITE_ROWS_EVENT_V1)
         self.assertIsInstance(event, WriteRowsEvent)
@@ -223,7 +223,7 @@ class TestBasicBinLogStreamReader(base.PyMySQLReplicationTestCase):
 
         event = yield from self.stream.fetchone()
         # if self.isMySQL56AndMore():
-        self.assertEqual(event.event_type, DELETE_ROWS_EVENT_V2)
+        self.assertEqual(event.event_type, BinLog.DELETE_ROWS_EVENT_V2)
         # else:
         # self.assertEqual(event.event_type, DELETE_ROWS_EVENT_V1)
         self.assertIsInstance(event, DeleteRowsEvent)
@@ -372,7 +372,7 @@ class TestBasicBinLogStreamReader(base.PyMySQLReplicationTestCase):
 #         # resume stream from previous position
 #         if self.stream is not None:
 #             self.stream.close()
-#         self.stream = BinLogStreamReader(
+#         self.stream = yield from create_binlog_stream(
 #             self.database,
 #             server_id=1024,
 #             resume_stream=True,
@@ -393,7 +393,7 @@ class TestBasicBinLogStreamReader(base.PyMySQLReplicationTestCase):
 #
 #     def test_log_pos_handles_disconnects(self):
 #         self.stream.close()
-#         self.stream = BinLogStreamReader(
+#         self.stream = yield from create_binlog_stream(
 #             self.database,
 #             server_id=1024,
 #             resume_stream=False,
@@ -536,7 +536,7 @@ class TestBasicBinLogStreamReader(base.PyMySQLReplicationTestCase):
 #         gtid = yield from self.execute(query).fetchone()[0]
 #
 #         self.stream.close()
-#         self.stream = BinLogStreamReader(
+#         self.stream = yield from create_binlog_stream(
 #             self.database, server_id=1024, blocking=True, auto_position=gtid)
 #
 #         self.assertIsInstance(self.stream.fetchone(), RotateEvent)
@@ -592,7 +592,7 @@ class TestBasicBinLogStreamReader(base.PyMySQLReplicationTestCase):
 #         gtid = yield from self.execute(query).fetchone()[0]
 #
 #         self.stream.close()
-#         self.stream = BinLogStreamReader(
+#         self.stream = yield from create_binlog_stream(
 #             self.database, server_id=1024, blocking=True, auto_position=gtid)
 #
 #         self.assertIsInstance(self.stream.fetchone(), RotateEvent)

@@ -1,7 +1,7 @@
 import aiomysql
 import pymysql
 import copy
-from aiomysql_replication import BinLogStreamReader, create_binlog_stream
+from aiomysql_replication import create_binlog_stream
 import os
 
 

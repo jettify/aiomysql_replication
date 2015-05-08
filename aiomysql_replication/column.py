@@ -2,7 +2,7 @@
 
 import struct
 
-from .constants import FIELD_TYPE
+from .consts import FieldType
 
 
 class Column(object):
@@ -31,41 +31,41 @@ class Column(object):
 
         if column_schema["COLUMN_TYPE"].find("unsigned") != -1:
             self.data["unsigned"] = True
-        if self.type == FIELD_TYPE.VAR_STRING or \
-                self.type == FIELD_TYPE.STRING:
+        if self.type == FieldType.VAR_STRING or \
+                self.type == FieldType.STRING:
             self._read_string_metadata(packet, column_schema)
-        elif self.type == FIELD_TYPE.VARCHAR:
+        elif self.type == FieldType.VARCHAR:
             self.data["max_length"] = struct.unpack('<H', packet.read(2))[0]
-        elif self.type == FIELD_TYPE.BLOB:
+        elif self.type == FieldType.BLOB:
             self.data["length_size"] = packet.read_uint8()
-        elif self.type == FIELD_TYPE.GEOMETRY:
+        elif self.type == FieldType.GEOMETRY:
             self.data["length_size"] = packet.read_uint8()
-        elif self.type == FIELD_TYPE.NEWDECIMAL:
+        elif self.type == FieldType.NEWDECIMAL:
             self.data["precision"] = packet.read_uint8()
             self.data["decimals"] = packet.read_uint8()
-        elif self.type == FIELD_TYPE.DOUBLE:
+        elif self.type == FieldType.DOUBLE:
             self.data["size"] = packet.read_uint8()
-        elif self.type == FIELD_TYPE.FLOAT:
+        elif self.type == FieldType.FLOAT:
             self.data["size"] = packet.read_uint8()
-        elif self.type == FIELD_TYPE.BIT:
+        elif self.type == FieldType.BIT:
             bits = packet.read_uint8()
             bytes = packet.read_uint8()
             self.data["bits"] = (bytes * 8) + bits
             self.data["bytes"] = int((self.bits + 7) / 8)
-        elif self.type == FIELD_TYPE.TIMESTAMP2:
+        elif self.type == FieldType.TIMESTAMP2:
             self.data["fsp"] = packet.read_uint8()
-        elif self.type == FIELD_TYPE.DATETIME2:
+        elif self.type == FieldType.DATETIME2:
             self.data["fsp"] = packet.read_uint8()
-        elif self.type == FIELD_TYPE.TIME2:
+        elif self.type == FieldType.TIME2:
             self.data["fsp"] = packet.read_uint8()
-        elif self.type == FIELD_TYPE.TINY and \
+        elif self.type == FieldType.TINY and \
                 column_schema["COLUMN_TYPE"] == "tinyint(1)":
             self.data["type_is_bool"] = True
 
     def _read_string_metadata(self, packet, column_schema):
         metadata = (packet.read_uint8() << 8) + packet.read_uint8()
         real_type = metadata >> 8
-        if real_type == FIELD_TYPE.SET or real_type == FIELD_TYPE.ENUM:
+        if real_type == FieldType.SET or real_type == FieldType.ENUM:
             self.data["type"] = real_type
             self.data["size"] = metadata & 0x00ff
             self.__read_enum_metadata(column_schema)
@@ -75,7 +75,7 @@ class Column(object):
 
     def __read_enum_metadata(self, column_schema):
         enums = column_schema["COLUMN_TYPE"]
-        if self.type == FIELD_TYPE.ENUM:
+        if self.type == FieldType.ENUM:
             self.data["enum_values"] = enums.replace('enum(', '')\
                 .replace(')', '').replace('\'', '').split(',')
         else:
