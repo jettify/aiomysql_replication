@@ -8,9 +8,9 @@ from pymysql.util import byte2int, int2byte
 
 class BinLogEvent(object):
     def __init__(self, from_packet, event_size, table_map, ctl_connection,
-                 only_tables = None,
-                 only_schemas = None,
-                 freeze_schema = False):
+                 only_tables=None,
+                 only_schemas=None,
+                 freeze_schema=False):
         self.packet = from_packet
         self.table_map = table_map
         self.event_type = self.packet.event_type
@@ -45,9 +45,11 @@ class BinLogEvent(object):
 class GtidEvent(BinLogEvent):
     """GTID change in binlog event
     """
-    def __init__(self, from_packet, event_size, table_map, ctl_connection, **kwargs):
+
+    def __init__(self, from_packet, event_size, table_map, ctl_connection,
+                 **kwargs):
         super(GtidEvent, self).__init__(from_packet, event_size, table_map,
-                                          ctl_connection, **kwargs)
+                                        ctl_connection, **kwargs)
 
         self.commit_flag = byte2int(self.packet.read(1)) == 1
         self.sid = self.packet.read(16)
@@ -58,7 +60,7 @@ class GtidEvent(BinLogEvent):
         """GTID = source_id:transaction_id
         Eg: 3E11FA47-71CA-11E1-9E33-C80AA9429562:23
         See: http://dev.mysql.com/doc/refman/5.6/en/replication-gtids-concepts.html"""
-        gtid = "%s%s%s%s-%s%s-%s%s-%s%s-%s%s%s%s%s%s" %\
+        gtid = "%s%s%s%s-%s%s-%s%s-%s%s-%s%s%s%s%s%s" % \
                tuple("{0:02x}".format(c) for c in self.sid)
         gtid += ":%d" % self.gno
         return gtid
@@ -78,7 +80,9 @@ class RotateEvent(BinLogEvent):
         position: Position inside next binlog
         next_binlog: Name of next binlog file
     """
-    def __init__(self, from_packet, event_size, table_map, ctl_connection, **kwargs):
+
+    def __init__(self, from_packet, event_size, table_map, ctl_connection,
+                 **kwargs):
         super(RotateEvent, self).__init__(from_packet, event_size, table_map,
                                           ctl_connection, **kwargs)
         self.position = struct.unpack('<Q', self.packet.read(8))[0]
@@ -106,7 +110,8 @@ class XidEvent(BinLogEvent):
         xid: Transaction ID for 2PC
     """
 
-    def __init__(self, from_packet, event_size, table_map, ctl_connection, **kwargs):
+    def __init__(self, from_packet, event_size, table_map, ctl_connection,
+                 **kwargs):
         super(XidEvent, self).__init__(from_packet, event_size, table_map,
                                        ctl_connection, **kwargs)
         self.xid = struct.unpack('<Q', self.packet.read(8))[0]
@@ -119,7 +124,9 @@ class XidEvent(BinLogEvent):
 class QueryEvent(BinLogEvent):
     '''This evenement is trigger when a query is run of the database.
     Only replicated queries are logged.'''
-    def __init__(self, from_packet, event_size, table_map, ctl_connection, **kwargs):
+
+    def __init__(self, from_packet, event_size, table_map, ctl_connection,
+                 **kwargs):
         super(QueryEvent, self).__init__(from_packet, event_size, table_map,
                                          ctl_connection, **kwargs)
 
@@ -137,7 +144,7 @@ class QueryEvent(BinLogEvent):
 
         self.query = self.packet.read(event_size - 13 - self.status_vars_length
                                       - self.schema_length - 1).decode("utf-8")
-        #string[EOF]    query
+        # string[EOF]    query
 
     def _dump(self):
         super(QueryEvent, self)._dump()
@@ -147,7 +154,8 @@ class QueryEvent(BinLogEvent):
 
 
 class NotImplementedEvent(BinLogEvent):
-    def __init__(self, from_packet, event_size, table_map, ctl_connection, **kwargs):
+    def __init__(self, from_packet, event_size, table_map, ctl_connection,
+                 **kwargs):
         super(NotImplementedEvent, self).__init__(
             from_packet, event_size, table_map, ctl_connection, **kwargs)
         self.packet.advance(event_size)
