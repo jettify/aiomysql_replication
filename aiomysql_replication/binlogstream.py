@@ -1,7 +1,5 @@
-# -*- coding: utf-8 -*-
 import asyncio
 
-# import pymysql
 import struct
 import aiomysql
 
@@ -10,7 +8,7 @@ from aiomysql import DictCursor
 from pymysql.util import int2byte
 
 from .packet import BinLogPacketWrapper
-from .constants.BINLOG import TABLE_MAP_EVENT, ROTATE_EVENT, STOP_EVENT
+from .consts import BinLog
 from .gtid import GtidSet
 from .event import (
     QueryEvent, RotateEvent, FormatDescriptionEvent,
@@ -44,17 +42,17 @@ class BinLogStreamReader(object):
                  freeze_schema=False, loop):
         """
         Attributes:
-            resume_stream: Start for event from position or the latest event of
-                           binlog or from older available event
-            blocking: Read on stream is blocking
-            only_events: Array of allowed events
-            ignored_events: Array of ignored events
-            log_file: Set replication start log file
-            log_pos: Set replication start log pos
-            auto_position: Use master_auto_position gtid to set position
-            only_tables: An array with the tables you want to watch
-            only_schemas: An array with the schemas you want to watch
-            freeze_schema: If true do not support ALTER TABLE. It's faster.
+        resume_stream: Start for event from position or the latest event of
+                       binlog or from older available event
+        blocking: Read on stream is blocking
+        only_events: Array of allowed events
+        ignored_events: Array of ignored events
+        log_file: Set replication start log file
+        log_pos: Set replication start log pos
+        auto_position: Use master_auto_position gtid to set position
+        only_tables: An array with the tables you want to watch
+        only_schemas: An array with the schemas you want to watch
+        freeze_schema: If true do not support ALTER TABLE. It's faster.
         """
         self._connection_settings = connection_settings
         self._connection_settings["charset"] = "utf8"
@@ -108,8 +106,10 @@ class BinLogStreamReader(object):
         self._ctl_connection_settings = dict(self._connection_settings)
         self._ctl_connection_settings["db"] = "information_schema"
         self._ctl_connection_settings["cursorclass"] = DictCursor
-        self._ctl_connection = yield from aiomysql.connect(**self._ctl_connection_settings)
-        self._ctl_connection._get_table_information = self._get_table_information
+        self._ctl_connection = yield from aiomysql.connect(
+            **self._ctl_connection_settings)
+        self._ctl_connection._get_table_information = \
+            self._get_table_information
         self._connected_ctl = True
 
     @asyncio.coroutine
@@ -133,7 +133,8 @@ class BinLogStreamReader(object):
         # flags (2) BINLOG_DUMP_NON_BLOCK (0 or 1)
         # server_id (4) -- server id of this slave
         # log_file (string.EOF) -- filename of the binlog on the master
-        self._stream_connection = yield from aiomysql.connect(**self._connection_settings)
+        self._stream_connection = yield from aiomysql.connect(
+            **self._connection_settings)
 
         self._use_checksum = self._checksum_enabled()
 
@@ -141,12 +142,13 @@ class BinLogStreamReader(object):
         # we support it
         if self._use_checksum:
             cur = yield from self._stream_connection.cursor()
-            yield from cur.execute("set @master_binlog_checksum= @@global.binlog_checksum")
+            yield from cur.execute("set @master_binlog_checksum="
+                                   " @@global.binlog_checksum")
             yield from cur.close()
 
         if not self.auto_position:
-            # only when log_file and log_pos both provided, the position info is
-            # valid, if not, get the current position from master
+            # only when log_file and log_pos both provided, the position info
+            # is valid, if not, get the current position from master
             if self.log_file is None or self.log_pos is None:
                 cur = yield from self._stream_connection.cursor()
                 yield from cur.execute("SHOW MASTER STATUS")
@@ -181,7 +183,7 @@ class BinLogStreamReader(object):
             # Server id       uint   4bytes
             # binlognamesize  uint   4bytes
             # binlogname      str    Nbytes  N = binlognamesize
-            #                                Zeroified
+            # Zeroified
             # binlog position uint   4bytes  == 4
             # payload_size    uint   4bytes
 
@@ -189,7 +191,8 @@ class BinLogStreamReader(object):
             # is sent to the master
             # n_sid           ulong  8bytes  == which size is the gtid_set
             # | sid           uuid   16bytes UUID as a binary
-            # | n_intervals   ulong  8bytes  == how many intervals are sent for this gtid
+            # | n_intervals   ulong  8bytes  == how many intervals are sent for
+            # this gtid
             # | | start       ulong  8bytes  Start position of this interval
             # | | stop        ulong  8bytes  Stop position of this interval
 
@@ -197,10 +200,12 @@ class BinLogStreamReader(object):
             #   19d69c1e-ae97-4b8c-a1ef-9e12ba966457:1-3:8-10,
             #   1c2aad49-ae92-409a-b4df-d05a03e4702e:42-47:80-100:130-140
             #
-            # In this particular gtid set, 19d69c1e-ae97-4b8c-a1ef-9e12ba966457:1-3:8-10
+            # In this particular gtid set, 19d69c1e-ae97-4b8c-a1ef-
+            # 9e12ba966457:1-3:8-10
             # is the first member of the set, it is called a gtid.
             # In this gtid, 19d69c1e-ae97-4b8c-a1ef-9e12ba966457 is the sid
-            # and have two intervals, 1-3 and 8-10, 1 is the start position of the first interval
+            # and have two intervals, 1-3 and 8-10, 1 is the start position
+            # of the first interval
             # 3 is the stop position of the first interval.
 
             gtid_set = GtidSet(self.auto_position)
@@ -213,8 +218,8 @@ class BinLogStreamReader(object):
                            8 +  # binlog_pos_info_size
                            4)  # encoded_data_size
 
-            prelude = b'' + struct.pack('<i', header_size + encoded_data_size) \
-                + int2byte(COM_BINLOG_DUMP_GTID)
+            prelude = (b'' + struct.pack('<i', header_size + encoded_data_size)
+                       + int2byte(COM_BINLOG_DUMP_GTID))
 
             # binlog_flags = 0 (2 bytes)
             prelude += struct.pack('<H', 0)
@@ -260,26 +265,32 @@ class BinLogStreamReader(object):
                                                self._only_schemas,
                                                self._freeze_schema)
 
+            if (binlog_event.event_type == BinLog.TABLE_MAP_EVENT
+                    and binlog_event.event is not None):
 
-            if binlog_event.event_type == TABLE_MAP_EVENT and \
-                    binlog_event.event is not None:
                 yield from binlog_event.event.load_table_schema()
 
                 self.table_map[binlog_event.event.table_id] = \
                     binlog_event.event.get_table()
 
-            if binlog_event.event_type == ROTATE_EVENT:
+            if binlog_event.event_type == BinLog.ROTATE_EVENT:
                 self.log_pos = binlog_event.event.position
                 self.log_file = binlog_event.event.next_binlog
                 # Table Id in binlog are NOT persistent in MySQL - they are
                 # in-memory identifiers
-                # that means that when MySQL master restarts, it will reuse same table id for different tables
-                # which will cause errors for us since our in-memory map will try to decode row data with
+                # that means that when MySQL master restarts, it will
+                # reuse same table id for different tables
+                # which will cause errors for us since our in-memory
+                # map will try to decode row data with
                 # wrong table schema.
-                # The fix is to rely on the fact that MySQL will also rotate to a new binlog file every time it
-                # restarts. That means every rotation we see *could* be a sign of restart and so potentially
-                # invalidates all our cached table id to schema mappings. This means we have to load them all
-                # again for each logfile which is potentially wasted effort but we can't really do much better
+                # The fix is to rely on the fact that MySQL will also
+                # rotate to a new binlog file every time it
+                # restarts. That means every rotation we see *could* be
+                # a sign of restart and so potentially
+                # invalidates all our cached table id to schema mappings.
+                # This means we have to load them all
+                # again for each logfile which is potentially wasted effort
+                # but we can't really do much better
                 # without being broken in restart case
                 self.table_map = {}
             elif binlog_event.log_pos:
@@ -287,19 +298,20 @@ class BinLogStreamReader(object):
 
             # event is none if we have filter it on packet level
             # we filter also not allowed events
-            if binlog_event.event is None or (binlog_event.event.__class__ not in self._allowed_events):
+            if binlog_event.event is None or (binlog_event.event.__class__ not
+                                              in self._allowed_events):
                 continue
 
             return binlog_event.event
 
     def _allowed_event_list(self,
-                           only_events,
-                           ignored_events,
-                           filter_non_implemented_events):
+                            only_events,
+                            ignored_events,
+                            filter_non_implemented_events):
         if only_events is not None:
             events = set(only_events)
         else:
-            events = set((
+            events = {
                 QueryEvent,
                 RotateEvent,
                 StopEvent,
@@ -310,7 +322,7 @@ class BinLogStreamReader(object):
                 WriteRowsEvent,
                 DeleteRowsEvent,
                 TableMapEvent,
-                NotImplementedEvent))
+                NotImplementedEvent}
         if ignored_events is not None:
             for e in ignored_events:
                 events.remove(e)
@@ -347,6 +359,6 @@ class BinLogStreamReader(object):
                     continue
                 else:
                     raise error
-    # TODO: fix  PEP492
-    # def __iter__(self):
-    #     return iter(self.fetchone, None)
+                    # TODO: fix  PEP492
+                    # def __iter__(self):
+                    # return iter(self.fetchone, None)

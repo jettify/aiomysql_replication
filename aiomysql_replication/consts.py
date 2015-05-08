@@ -1,9 +1,7 @@
-# binlog constants
 from enum import IntEnum
 
 
 class BinLog(IntEnum):
-
     UNKNOWN_EVENT = 0x00
     START_EVENT_V3 = 0x01
     QUERY_EVENT = 0x02
@@ -41,10 +39,8 @@ class BinLog(IntEnum):
     ANONYMOUS_GTID_LOG_EVENT = 0x22
     PREVIOUS_GTIDS_LOG_EVENT = 0x23
 
-# Field type constants
 
 class FieldType(IntEnum):
-
     DECIMAL = 0
     TINY = 1
     SHORT = 2

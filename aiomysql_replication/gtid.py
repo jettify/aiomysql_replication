@@ -1,6 +1,6 @@
+import binascii
 import re
 import struct
-import binascii
 
 
 class Gtid(object):
@@ -13,7 +13,6 @@ class Gtid(object):
             return (int(m.group(1)))
         else:
             return (int(m.group(1)), int(m.group(2)))
-
 
     @staticmethod
     def parse(gtid):
