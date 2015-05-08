@@ -1,9 +1,8 @@
-from aiomysql_replication.tests import base
+from tests import base
 from aiomysql_replication import create_binlog_stream
 from aiomysql_replication.event import *
-from aiomysql_replication.consts import BinLog
 from aiomysql_replication.row_event import *
-from aiomysql_replication.tests.base import run_until_complete
+from tests.base import run_until_complete
 
 
 class TestBasicBinLogStreamReader(base.PyMySQLReplicationTestCase):

@@ -1,15 +1,15 @@
 # -*- coding: utf-8 -*-
 
-import copy
 import platform
 import unittest
-
 from decimal import Decimal
 
-from aiomysql_replication.tests import base
-from aiomysql_replication.constants.BINLOG import *
+import copy
+
+from tests import base
 from aiomysql_replication.row_event import *
 from aiomysql_replication.event import *
+
 
 __all__ = ["TestDataType"]
 

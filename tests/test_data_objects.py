@@ -3,8 +3,8 @@ import unittest
 from aiomysql_replication.column import Column
 from aiomysql_replication.table import Table
 from aiomysql_replication.event import GtidEvent
+from tests import base
 
-from aiomysql_replication.tests import base
 
 __all__ = ["TestDataObjects"]
 
