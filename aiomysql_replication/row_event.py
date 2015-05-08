@@ -1,17 +1,14 @@
-# -*- coding: utf-8 -*-
-
 import asyncio
 import decimal
 import datetime
-
 import struct
-from pymysql.util import byte2int
 
-from .event import BinLogEvent
+from .bitmap import bit_count, bit_get
 from .consts import FieldType, BinLog
 from .column import Column
+from .event import BinLogEvent
 from .table import Table
-from .bitmap import bit_count, bit_get
+from .utils import byte2int
 
 
 class RowsEvent(BinLogEvent):

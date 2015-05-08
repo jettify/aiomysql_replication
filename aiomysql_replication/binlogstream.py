@@ -4,8 +4,7 @@ import struct
 import aiomysql
 
 from pymysql.constants.COMMAND import COM_BINLOG_DUMP
-from aiomysql import DictCursor
-from pymysql.util import int2byte
+from pymysql.constants.COMMAND import COM_BINLOG_DUMP_GTID
 
 from .packet import BinLogPacketWrapper
 from .consts import BinLog
@@ -16,7 +15,7 @@ from .event import (
 from .row_event import (
     UpdateRowsEvent, WriteRowsEvent, DeleteRowsEvent, TableMapEvent)
 
-from pymysql.constants.COMMAND import COM_BINLOG_DUMP_GTID
+from .utils import int2byte
 
 
 # 2013 Connection Lost
@@ -105,7 +104,7 @@ class BinLogStreamReader(object):
     def _connect_to_ctl(self):
         self._ctl_connection_settings = dict(self._connection_settings)
         self._ctl_connection_settings["db"] = "information_schema"
-        self._ctl_connection_settings["cursorclass"] = DictCursor
+        self._ctl_connection_settings["cursorclass"] = aiomysql.DictCursor
         self._ctl_connection = yield from aiomysql.connect(
             **self._ctl_connection_settings)
         self._ctl_connection._get_table_information = \

@@ -1,9 +1,7 @@
-# -*- coding: utf-8 -*-
-
 import struct
 import datetime
 
-from pymysql.util import byte2int, int2byte
+from .utils import byte2int, int2byte
 
 
 class BinLogEvent(object):

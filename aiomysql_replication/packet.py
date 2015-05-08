@@ -1,11 +1,9 @@
-# -*- coding: utf-8 -*-
-
 import struct
 
-from pymysql.util import byte2int
-from . import event, row_event
+from . import event
 from . import row_event
 from .consts import BinLog
+from .utils import byte2int
 
 # Constants from PyMYSQL source code
 NULL_COLUMN = 251
