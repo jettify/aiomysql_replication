@@ -1,14 +1,11 @@
-import aiomysql
-import pymysql
-import copy
-from aiomysql_replication import create_binlog_stream
-import os
-
-
 import asyncio
+import copy
+import os
 import unittest
-
 from functools import wraps
+
+import aiomysql
+from aiomysql_replication import create_binlog_stream
 
 
 def run_until_complete(fun):
@@ -34,7 +31,6 @@ class BaseTest(unittest.TestCase):
     def tearDown(self):
         self.loop.close()
         del self.loop
-
 
 
 class PyMySQLReplicationTestCase(BaseTest):
