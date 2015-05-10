@@ -302,36 +302,41 @@ class TestBasicBinLogStreamReader(base.PyMySQLReplicationTestCase):
         self.assertEqual(event.schema, "pymysqlreplication_test")
         self.assertEqual(event.table, "test")
         self.assertEqual(event.columns[1].name, 'data')
-#
-#     def test_minimal_image_delete_row_event(self):
-#         query = "CREATE TABLE test (id INT NOT NULL AUTO_INCREMENT, data VARCHAR (50) NOT NULL, PRIMARY KEY (id))"
-#         yield from self.execute(query)
-#         query = "INSERT INTO test (data) VALUES('Hello World')"
-#         yield from self.execute(query)
-#         query = "SET SESSION binlog_row_image = 'minimal'"
-#         yield from self.execute(query)
-#         self.resetBinLog()
-#
-#         query = "DELETE FROM test WHERE id = 1"
-#         yield from self.execute(query)
-#         yield from self.execute("COMMIT")
-#
-#         self.assertIsInstance(self.stream.fetchone(), RotateEvent)
-#         self.assertIsInstance(self.stream.fetchone(), FormatDescriptionEvent)
-#
-#         #QueryEvent for the BEGIN
-#         self.assertIsInstance(self.stream.fetchone(), QueryEvent)
-#
-#         self.assertIsInstance(self.stream.fetchone(), TableMapEvent)
-#
-#         event = self.stream.fetchone()
-#         if self.isMySQL56AndMore():
-#             self.assertEqual(event.event_type, DELETE_ROWS_EVENT_V2)
-#         else:
-#             self.assertEqual(event.event_type, DELETE_ROWS_EVENT_V1)
-#         self.assertIsInstance(event, DeleteRowsEvent)
-#         self.assertEqual(event.rows[0]["values"]["id"], 1)
-#         self.assertEqual(event.rows[0]["values"]["data"], None)
+
+    @run_until_complete
+    def test_minimal_image_delete_row_event(self):
+        query = "CREATE TABLE test (id INT NOT NULL AUTO_INCREMENT, " \
+                "data VARCHAR (50) NOT NULL, PRIMARY KEY (id))"
+        yield from self.execute(query)
+        query = "INSERT INTO test (data) VALUES('Hello World')"
+        yield from self.execute(query)
+        query = "SET SESSION binlog_row_image = 'minimal'"
+        yield from self.execute(query)
+        yield from self.resetBinLog()
+
+        query = "DELETE FROM test WHERE id = 1"
+        yield from self.execute(query)
+        yield from self.execute("COMMIT")
+        event = yield from self.stream.fetchone()
+        self.assertIsInstance(event, RotateEvent)
+        event = yield from self.stream.fetchone()
+        self.assertIsInstance(event, FormatDescriptionEvent)
+
+        #QueryEvent for the BEGIN
+        event = yield from self.stream.fetchone()
+        self.assertIsInstance(event, QueryEvent)
+
+        event = yield from self.stream.fetchone()
+        self.assertIsInstance(event, TableMapEvent)
+
+        event = yield from self.stream.fetchone()
+        # if self.isMySQL56AndMore():
+        self.assertEqual(event.event_type, BinLog.DELETE_ROWS_EVENT_V2)
+        # else:
+        #     self.assertEqual(event.event_type, DELETE_ROWS_EVENT_V1)
+        self.assertIsInstance(event, DeleteRowsEvent)
+        self.assertEqual(event.rows[0]["values"]["id"], 1)
+        self.assertEqual(event.rows[0]["values"]["data"], None)
 #
 #     def test_minimal_image_update_row_event(self):
 #         query = "CREATE TABLE test (id INT NOT NULL AUTO_INCREMENT, data VARCHAR (50) NOT NULL, PRIMARY KEY (id))"
