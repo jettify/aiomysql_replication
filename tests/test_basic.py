@@ -337,77 +337,89 @@ class TestBasicBinLogStreamReader(base.PyMySQLReplicationTestCase):
         self.assertIsInstance(event, DeleteRowsEvent)
         self.assertEqual(event.rows[0]["values"]["id"], 1)
         self.assertEqual(event.rows[0]["values"]["data"], None)
-#
-#     def test_minimal_image_update_row_event(self):
-#         query = "CREATE TABLE test (id INT NOT NULL AUTO_INCREMENT, data VARCHAR (50) NOT NULL, PRIMARY KEY (id))"
-#         yield from self.execute(query)
-#         query = "INSERT INTO test (data) VALUES('Hello')"
-#         yield from self.execute(query)
-#         query = "SET SESSION binlog_row_image = 'minimal'"
-#         yield from self.execute(query)
-#         self.resetBinLog()
-#
-#         query = "UPDATE test SET data = 'World' WHERE id = 1"
-#         yield from self.execute(query)
-#         yield from self.execute("COMMIT")
-#
-#         self.assertIsInstance(self.stream.fetchone(), RotateEvent)
-#         self.assertIsInstance(self.stream.fetchone(), FormatDescriptionEvent)
-#
-#         #QueryEvent for the BEGIN
-#         self.assertIsInstance(self.stream.fetchone(), QueryEvent)
-#
-#         self.assertIsInstance(self.stream.fetchone(), TableMapEvent)
-#
-#         event = self.stream.fetchone()
-#         if self.isMySQL56AndMore():
-#             self.assertEqual(event.event_type, UPDATE_ROWS_EVENT_V2)
-#         else:
-#             self.assertEqual(event.event_type, UPDATE_ROWS_EVENT_V1)
-#         self.assertIsInstance(event, UpdateRowsEvent)
-#         self.assertEqual(event.rows[0]["before_values"]["id"], 1)
-#         self.assertEqual(event.rows[0]["before_values"]["data"], None)
-#         self.assertEqual(event.rows[0]["after_values"]["id"], None)
-#         self.assertEqual(event.rows[0]["after_values"]["data"], "World")
-#
-#     def test_log_pos(self):
-#         query = "CREATE TABLE test (id INT NOT NULL AUTO_INCREMENT, data VARCHAR (50) NOT NULL, PRIMARY KEY (id))"
-#         yield from self.execute(query)
-#         query = "INSERT INTO test (data) VALUES('Hello')"
-#         yield from self.execute(query)
-#         yield from self.execute("COMMIT")
-#
-#         for i in range(6):
-#             self.stream.fetchone()
-#         # record position after insert
-#         log_file, log_pos = self.stream.log_file, self.stream.log_pos
-#
-#         query = "UPDATE test SET data = 'World' WHERE id = 1"
-#         yield from self.execute(query)
-#         yield from self.execute("COMMIT")
-#
-#         # resume stream from previous position
-#         if self.stream is not None:
-#             self.stream.close()
-#         self.stream = yield from create_binlog_stream(
-#             self.database,
-#             server_id=1024,
-#             resume_stream=True,
-#             log_file=log_file,
-#             log_pos=log_pos,
-#             ignored_events=self.ignoredEvents()
-#         )
-#
-#         self.assertIsInstance(self.stream.fetchone(), RotateEvent)
-#         self.assertIsInstance(self.stream.fetchone(), FormatDescriptionEvent)
-#         self.assertIsInstance(self.stream.fetchone(), XidEvent)
-#         # QueryEvent for the BEGIN
-#         self.assertIsInstance(self.stream.fetchone(), QueryEvent)
-#         self.assertIsInstance(self.stream.fetchone(), TableMapEvent)
-#         self.assertIsInstance(self.stream.fetchone(), UpdateRowsEvent)
-#         self.assertIsInstance(self.stream.fetchone(), XidEvent)
-#
-#
+
+    @run_until_complete
+    def test_minimal_image_update_row_event(self):
+        query = "CREATE TABLE test (id INT NOT NULL AUTO_INCREMENT, " \
+                "data VARCHAR (50) NOT NULL, PRIMARY KEY (id))"
+        yield from self.execute(query)
+        query = "INSERT INTO test (data) VALUES('Hello')"
+        yield from self.execute(query)
+        query = "SET SESSION binlog_row_image = 'minimal'"
+        yield from self.execute(query)
+        yield from self.resetBinLog()
+
+        query = "UPDATE test SET data = 'World' WHERE id = 1"
+        yield from self.execute(query)
+        yield from self.execute("COMMIT")
+
+        event = yield from self.stream.fetchone()
+        self.assertIsInstance(event, RotateEvent)
+        event = yield from self.stream.fetchone()
+        self.assertIsInstance(event, FormatDescriptionEvent)
+
+        #QueryEvent for the BEGIN
+        event = yield from self.stream.fetchone()
+        self.assertIsInstance(event, QueryEvent)
+
+        event = yield from self.stream.fetchone()
+        self.assertIsInstance(event, TableMapEvent)
+
+        event = yield from self.stream.fetchone()
+        # if self.isMySQL56AndMore():
+        self.assertEqual(event.event_type, BinLog.UPDATE_ROWS_EVENT_V2)
+        # else:
+        #     self.assertEqual(event.event_type, UPDATE_ROWS_EVENT_V1)
+        self.assertIsInstance(event, UpdateRowsEvent)
+        self.assertEqual(event.rows[0]["before_values"]["id"], 1)
+        self.assertEqual(event.rows[0]["before_values"]["data"], None)
+        self.assertEqual(event.rows[0]["after_values"]["id"], None)
+        self.assertEqual(event.rows[0]["after_values"]["data"], "World")
+
+    def test_log_pos(self):
+        query = "CREATE TABLE test (id INT NOT NULL AUTO_INCREMENT, " \
+                "data VARCHAR (50) NOT NULL, PRIMARY KEY (id))"
+        yield from self.execute(query)
+        query = "INSERT INTO test (data) VALUES('Hello')"
+        yield from self.execute(query)
+        yield from self.execute("COMMIT")
+
+        for i in range(6):
+            yield from self.stream.fetchone()
+        # record position after insert
+        log_file, log_pos = self.stream.log_file, self.stream.log_pos
+
+        query = "UPDATE test SET data = 'World' WHERE id = 1"
+        yield from self.execute(query)
+        yield from self.execute("COMMIT")
+
+        # resume stream from previous position
+        if self.stream is not None:
+            self.stream.close()
+        self.stream = yield from create_binlog_stream(
+            self.database,
+            server_id=1024,
+            resume_stream=True,
+            log_file=log_file,
+            log_pos=log_pos,
+            ignored_events=self.ignoredEvents()
+        )
+        event = yield from self.stream.fetchone()
+        self.assertIsInstance(event, RotateEvent)
+        event = yield from self.stream.fetchone()
+        self.assertIsInstance(event, FormatDescriptionEvent)
+        event = yield from self.stream.fetchone()
+        self.assertIsInstance(event, XidEvent)
+        # QueryEvent for the BEGIN
+        event = yield from self.stream.fetchone()
+        self.assertIsInstance(event, QueryEvent)
+        event = yield from self.stream.fetchone()
+        self.assertIsInstance(event, TableMapEvent)
+        event = yield from self.stream.fetchone()
+        self.assertIsInstance(event, UpdateRowsEvent)
+        event = yield from self.stream.fetchone()
+        self.assertIsInstance(event, XidEvent)
+
 #     def test_log_pos_handles_disconnects(self):
 #         self.stream.close()
 #         self.stream = yield from create_binlog_stream(
