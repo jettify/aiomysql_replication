@@ -13,9 +13,10 @@ loop = asyncio.get_event_loop()
 
 @asyncio.coroutine
 def test_example():
-    stream = yield from create_binlog_stream(connection_settings=MYSQL_SETTINGS,
-                            server_id=3,
-                            blocking=True, loop=loop)
+    stream = yield from create_binlog_stream(
+        connection_settings=MYSQL_SETTINGS, server_id=1, blocking=True,
+        loop=loop)
+
     while True:
         event = yield from stream.fetchone()
         event.dump()
