@@ -16,9 +16,9 @@ class RowsEvent(BinLogEvent):
                  **kwargs):
         super(RowsEvent, self).__init__(from_packet, event_size, table_map,
                                         ctl_connection, **kwargs)
-        self.__rows = None
-        self.__only_tables = kwargs["only_tables"]
-        self.__only_schemas = kwargs["only_schemas"]
+        self._rows = None
+        self._only_tables = kwargs["only_tables"]
+        self._only_schemas = kwargs["only_schemas"]
 
         # Header
         self.table_id = self._read_table_id()
@@ -32,10 +32,10 @@ class RowsEvent(BinLogEvent):
             self._processed = False
             return
 
-        if self.__only_tables is not None and self.table not in self.__only_tables:
+        if self._only_tables is not None and self.table not in self._only_tables:
             self._processed = False
             return
-        if self.__only_schemas is not None and self.schema not in self.__only_schemas:
+        if self._only_schemas is not None and self.schema not in self._only_schemas:
             self._processed = False
             return
 
@@ -55,7 +55,7 @@ class RowsEvent(BinLogEvent):
         self.number_of_columns = self.packet.read_length_coded_binary()
         self.columns = self.table_map[self.table_id].columns
 
-    def __is_null(self, null_bitmap, position):
+    def _is_null(self, null_bitmap, position):
         bit = null_bitmap[int(position / 8)]
         if type(bit) is str:
             bit = ord(bit)
@@ -82,7 +82,7 @@ class RowsEvent(BinLogEvent):
                 values[name] = None
                 continue
 
-            if self.__is_null(null_bitmap, nullBitmapIndex):
+            if self._is_null(null_bitmap, nullBitmapIndex):
                 values[name] = None
             elif column.type == FieldType.TINY:
                 if unsigned:
@@ -111,30 +111,30 @@ class RowsEvent(BinLogEvent):
             elif column.type == FieldType.VARCHAR or \
                             column.type == FieldType.STRING:
                 if column.max_length > 255:
-                    values[name] = self.__read_string(2, column)
+                    values[name] = self._read_string(2, column)
                 else:
-                    values[name] = self.__read_string(1, column)
+                    values[name] = self._read_string(1, column)
             elif column.type == FieldType.NEWDECIMAL:
-                values[name] = self.__read_new_decimal(column)
+                values[name] = self._read_new_decimal(column)
             elif column.type == FieldType.BLOB:
-                values[name] = self.__read_string(column.length_size, column)
+                values[name] = self._read_string(column.length_size, column)
             elif column.type == FieldType.DATETIME:
-                values[name] = self.__read_datetime()
+                values[name] = self._read_datetime()
             elif column.type == FieldType.TIME:
-                values[name] = self.__read_time()
+                values[name] = self._read_time()
             elif column.type == FieldType.DATE:
-                values[name] = self.__read_date()
+                values[name] = self._read_date()
             elif column.type == FieldType.TIMESTAMP:
                 values[name] = datetime.datetime.fromtimestamp(
                     self.packet.read_uint32())
 
             # For new date format:
             elif column.type == FieldType.DATETIME2:
-                values[name] = self.__read_datetime2(column)
+                values[name] = self._read_datetime2(column)
             elif column.type == FieldType.TIME2:
-                values[name] = self.__read_time2(column)
+                values[name] = self._read_time2(column)
             elif column.type == FieldType.TIMESTAMP2:
-                values[name] = self.__add_fsp_to_time(
+                values[name] = self._add_fsp_to_time(
                     datetime.datetime.fromtimestamp(
                         self.packet.read_int_be_by_size(4)), column)
             elif column.type == FieldType.LONGLONG:
@@ -157,7 +157,7 @@ class RowsEvent(BinLogEvent):
                 ) or None
 
             elif column.type == FieldType.BIT:
-                values[name] = self.__read_bit(column)
+                values[name] = self._read_bit(column)
             elif column.type == FieldType.GEOMETRY:
                 values[name] = self.packet.read_length_coded_pascal_string(
                     column.length_size)
@@ -169,7 +169,7 @@ class RowsEvent(BinLogEvent):
 
         return values
 
-    def __add_fsp_to_time(self, time, column):
+    def _add_fsp_to_time(self, time, column):
         """Read and add the fractional part of time
         For more details about new date format:
         http://dev.mysql.com/doc/internals/en/date-and-time-data-type-representation.html
@@ -189,13 +189,13 @@ class RowsEvent(BinLogEvent):
                 time = time.replace(microsecond=microsecond)
         return time
 
-    def __read_string(self, size, column):
+    def _read_string(self, size, column):
         string = self.packet.read_length_coded_pascal_string(size)
         if column.character_set_name is not None:
             string = string.decode(column.character_set_name)
         return string
 
-    def __read_bit(self, column):
+    def _read_bit(self, column):
         """Read MySQL BIT type"""
         resp = ""
         for byte in range(0, column.bytes):
@@ -218,7 +218,7 @@ class RowsEvent(BinLogEvent):
             resp += current_byte[::-1]
         return resp
 
-    def __read_time(self):
+    def _read_time(self):
         time = self.packet.read_uint24()
         date = datetime.time(
             hour=int(time / 10000),
@@ -226,7 +226,7 @@ class RowsEvent(BinLogEvent):
             second=int(time % 100))
         return date
 
-    def __read_time2(self, column):
+    def _read_time2(self, column):
         """TIME encoding for nonfractional part:
 
          1 bit sign    (1= non-negative, 0= negative)
@@ -239,12 +239,12 @@ class RowsEvent(BinLogEvent):
         """
         data = self.packet.read_int_be_by_size(3)
         t = datetime.time(
-            hour=self.__read_binary_slice(data, 2, 10, 24),
-            minute=self.__read_binary_slice(data, 12, 6, 24),
-            second=self.__read_binary_slice(data, 18, 6, 24))
-        return self.__add_fsp_to_time(t, column)
+            hour=self._read_binary_slice(data, 2, 10, 24),
+            minute=self._read_binary_slice(data, 12, 6, 24),
+            second=self._read_binary_slice(data, 18, 6, 24))
+        return self._add_fsp_to_time(t, column)
 
-    def __read_date(self):
+    def _read_date(self):
         time = self.packet.read_uint24()
         if time == 0:  # nasty mysql 0000-00-00 dates
             return None
@@ -263,7 +263,7 @@ class RowsEvent(BinLogEvent):
         )
         return date
 
-    def __read_datetime(self):
+    def _read_datetime(self):
         value = self.packet.read_uint64()
         if value == 0:  # nasty mysql 0000-00-00 dates
             return None
@@ -286,7 +286,7 @@ class RowsEvent(BinLogEvent):
             second=int(time % 100))
         return date
 
-    def __read_datetime2(self, column):
+    def _read_datetime2(self, column):
         """DATETIME
 
         1 bit  sign           (1= non-negative, 0= negative)
@@ -299,20 +299,20 @@ class RowsEvent(BinLogEvent):
         40 bits = 5 bytes
         """
         data = self.packet.read_int_be_by_size(5)
-        year_month = self.__read_binary_slice(data, 1, 17, 40)
+        year_month = self._read_binary_slice(data, 1, 17, 40)
         try:
             t = datetime.datetime(
                 year=int(year_month / 13),
                 month=year_month % 13,
-                day=self.__read_binary_slice(data, 18, 5, 40),
-                hour=self.__read_binary_slice(data, 23, 5, 40),
-                minute=self.__read_binary_slice(data, 28, 6, 40),
-                second=self.__read_binary_slice(data, 34, 6, 40))
+                day=self._read_binary_slice(data, 18, 5, 40),
+                hour=self._read_binary_slice(data, 23, 5, 40),
+                minute=self._read_binary_slice(data, 28, 6, 40),
+                second=self._read_binary_slice(data, 34, 6, 40))
         except ValueError:
             return None
-        return self.__add_fsp_to_time(t, column)
+        return self._add_fsp_to_time(t, column)
 
-    def __read_new_decimal(self, column):
+    def _read_new_decimal(self, column):
         """Read MySQL's new decimal format introduced in MySQL 5"""
 
         # This project was a great source of inspiration for
@@ -362,7 +362,7 @@ class RowsEvent(BinLogEvent):
 
         return decimal.Decimal(res)
 
-    def __read_binary_slice(self, binary, start, size, data_length):
+    def _read_binary_slice(self, binary, start, size, data_length):
         """
         Read a part of binary data and extract a number
         binary: the data
@@ -381,15 +381,15 @@ class RowsEvent(BinLogEvent):
         print("Changed rows: %d" % (len(self.rows)))
 
     def _fetch_rows(self):
-        self.__rows = []
+        self._rows = []
         while self.packet.read_bytes + 1 < self.event_size:
-            self.__rows.append(self._fetch_one_row())
+            self._rows.append(self._fetch_one_row())
 
     @property
     def rows(self):
-        if self.__rows is None:
+        if self._rows is None:
             self._fetch_rows()
-        return self.__rows
+        return self._rows
 
 
 class DeleteRowsEvent(RowsEvent):
@@ -507,14 +507,14 @@ class TableMapEvent(BinLogEvent):
                  **kwargs):
         super(TableMapEvent, self).__init__(from_packet, event_size,
                                             table_map, ctl_connection, **kwargs)
-        self.__only_tables = kwargs["only_tables"]
-        self.__only_schemas = kwargs["only_schemas"]
-        self.__freeze_schema = kwargs["freeze_schema"]
+        self._only_tables = kwargs["only_tables"]
+        self._only_schemas = kwargs["only_schemas"]
+        self._freeze_schema = kwargs["freeze_schema"]
 
         # Post-Header
         self.table_id = self._read_table_id()
 
-        if self.table_id in table_map and self.__freeze_schema:
+        if self.table_id in table_map and self._freeze_schema:
             self._processed = False
             return
 
@@ -527,10 +527,10 @@ class TableMapEvent(BinLogEvent):
         self.table_length = byte2int(self.packet.read(1))
         self.table = self.packet.read(self.table_length).decode()
 
-        if self.__only_tables is not None and self.table not in self.__only_tables:
+        if self._only_tables is not None and self.table not in self._only_tables:
             self._processed = False
             return
-        if self.__only_schemas is not None and self.schema not in self.__only_schemas:
+        if self._only_schemas is not None and self.schema not in self._only_schemas:
             self._processed = False
             return
 
