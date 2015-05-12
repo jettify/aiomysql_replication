@@ -1,8 +1,8 @@
 aiomysql_replication (Work in Progress)
 =======================================
 
-**aiomysql_replication** -- implementation of MySQL replication protocol build
-on top of aiomysql and PyMySQ for asynico (PEP-3156/tulip). This library is
+**aiomysql_replication** - implementation of MySQL replication protocol build
+on top of aiomysql and PyMySQL for asynico (PEP-3156/tulip). This library is
 fork of python-mysql-replication_ with asyncio_ support.
 
 
