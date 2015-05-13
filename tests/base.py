@@ -18,12 +18,14 @@ def run_until_complete(fun):
         ret = loop.run_until_complete(
             asyncio.wait_for(fun(test, *args, **kw), 15, loop=loop))
         return ret
+
     return wrapper
 
 
 class BaseTest(unittest.TestCase):
     """Base test case for unittests.
     """
+
     def setUp(self):
         self.loop = asyncio.new_event_loop()
         asyncio.set_event_loop(None)
@@ -33,8 +35,7 @@ class BaseTest(unittest.TestCase):
         del self.loop
 
 
-class PyMySQLReplicationTestCase(BaseTest):
-
+class ReplicationTestCase(BaseTest):
     def ignoredEvents(self):
         return []
 
@@ -52,7 +53,6 @@ class PyMySQLReplicationTestCase(BaseTest):
         if os.getenv("TRAVIS") is not None:
             self.database["user"] = "travis"
 
-
         self.conn_control = None
         db = copy.copy(self.database)
         db["db"] = None
@@ -62,7 +62,8 @@ class PyMySQLReplicationTestCase(BaseTest):
     @asyncio.coroutine
     def _prepare(self, db):
         yield from self.connect_conn_control(db)
-        yield from self.execute("DROP DATABASE IF EXISTS pymysqlreplication_test")
+        yield from self.execute("DROP DATABASE IF EXISTS "
+                                "pymysqlreplication_test")
         yield from self.execute("CREATE DATABASE pymysqlreplication_test")
         db = copy.copy(self.database)
         yield from self.connect_conn_control(db)
@@ -110,6 +111,6 @@ class PyMySQLReplicationTestCase(BaseTest):
         yield from self.execute("RESET MASTER")
         if self.stream is not None:
             self.stream.close()
-        self.stream = yield from create_binlog_stream(self.database, server_id=1024,
-                                         ignored_events=self.ignoredEvents(),
-                                         loop=self.loop)
+        self.stream = yield from create_binlog_stream(
+            self.database, server_id=1024, ignored_events=self.ignoredEvents(),
+            loop=self.loop)

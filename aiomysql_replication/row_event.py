@@ -28,7 +28,7 @@ class RowsEvent(BinLogEvent):
             self.primary_key = table_map[self.table_id].data["primary_key"]
             self.schema = self.table_map[self.table_id].schema
             self.table = self.table_map[self.table_id].table
-        except KeyError:  #If we have filter the corresponding TableMap Event
+        except KeyError:  # If we have filter the corresponding TableMap Event
             self._processed = False
             return
 
@@ -40,7 +40,7 @@ class RowsEvent(BinLogEvent):
             return
 
 
-        #Event V2
+        # Event V2
         if self.event_type == BinLog.WRITE_ROWS_EVENT_V2 or \
                         self.event_type == BinLog.DELETE_ROWS_EVENT_V2 or \
                         self.event_type == BinLog.UPDATE_ROWS_EVENT_V2:
@@ -172,7 +172,8 @@ class RowsEvent(BinLogEvent):
     def _add_fsp_to_time(self, time, column):
         """Read and add the fractional part of time
         For more details about new date format:
-        http://dev.mysql.com/doc/internals/en/date-and-time-data-type-representation.html
+        http://dev.mysql.com/doc/internals/en/date-and-time-
+        data-type-representation.html
         """
         read = 0
         if column.fsp == 1 or column.fsp == 2:
@@ -395,7 +396,8 @@ class RowsEvent(BinLogEvent):
 class DeleteRowsEvent(RowsEvent):
     """This event is trigger when a row in the database is removed
 
-    For each row you have a hash with a single key: values which contain the data of the removed line.
+    For each row you have a hash with a single key: values which contain the
+    data of the removed line.
     """
 
     def __init__(self, from_packet, event_size, table_map, ctl_connection,
@@ -425,7 +427,8 @@ class DeleteRowsEvent(RowsEvent):
 class WriteRowsEvent(RowsEvent):
     """This event is triggered when a row in database is added
 
-    For each row you have a hash with a single key: values which contain the data of the new line.
+    For each row you have a hash with a single key: values which contain
+    the data of the new line.
     """
 
     def __init__(self, from_packet, event_size, table_map, ctl_connection,
@@ -459,8 +462,10 @@ class UpdateRowsEvent(RowsEvent):
         * before_values
         * after_values
 
-    Depending of your MySQL configuration the hash can contains the full row or only the changes:
-    http://dev.mysql.com/doc/refman/5.6/en/replication-options-binary-log.html#sysvar_binlog_row_image
+    Depending of your MySQL configuration the hash can contains the full
+    row or only the changes:
+    http://dev.mysql.com/doc/refman/5.6/en/replication-options-binary-log.
+    html#sysvar_binlog_row_image
     """
 
     def __init__(self, from_packet, event_size, table_map, ctl_connection,
@@ -559,7 +564,8 @@ class TableMapEvent(BinLogEvent):
             column_type = column_types[i]
             column_schema = self.column_schemas[i]
 
-            col = Column(byte2int(column_type), column_schema, self._from_packet)
+            col = Column(byte2int(column_type), column_schema,
+                         self._from_packet)
             self.columns.append(col)
 
         self.table_obj = Table(self.column_schemas, self.table_id, self.schema,

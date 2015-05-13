@@ -9,7 +9,7 @@ from tests import base
 __all__ = ["TestDataObjects"]
 
 
-class TestDataObjects(base.PyMySQLReplicationTestCase):
+class TestDataObjects(base.ReplicationTestCase):
     def ignoredEvents(self):
         return [GtidEvent]
 

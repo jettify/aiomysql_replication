@@ -5,7 +5,7 @@ from aiomysql_replication.row_event import *
 from tests.base import run_until_complete
 
 
-class TestBasicBinLogStreamReader(base.PyMySQLReplicationTestCase):
+class TestBasicBinLogStreamReader(base.ReplicationTestCase):
     def ignoredEvents(self):
         return [GtidEvent]
 
