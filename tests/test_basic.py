@@ -420,33 +420,43 @@ class TestBasicBinLogStreamReader(base.ReplicationTestCase):
         event = yield from self.stream.fetchone()
         self.assertIsInstance(event, XidEvent)
 
-#     def test_log_pos_handles_disconnects(self):
-#         self.stream.close()
-#         self.stream = yield from create_binlog_stream(
-#             self.database,
-#             server_id=1024,
-#             resume_stream=False,
-#             only_events = [FormatDescriptionEvent, QueryEvent, TableMapEvent, WriteRowsEvent, XidEvent]
-#         )
-#
-#         query = "CREATE TABLE test (id INT  PRIMARY KEY AUTO_INCREMENT, data VARCHAR (50) NOT NULL)"
-#         yield from self.execute(query)
-#         query = "INSERT INTO test (data) VALUES('Hello')"
-#         yield from self.execute(query)
-#         yield from self.execute("COMMIT")
-#
-#         self.assertIsInstance(self.stream.fetchone(), FormatDescriptionEvent)
-#         self.assertGreater(self.stream.log_pos, 0)
-#         self.assertIsInstance(self.stream.fetchone(), QueryEvent)
-#
-#         self.assertIsInstance(self.stream.fetchone(), QueryEvent)
-#         self.assertIsInstance(self.stream.fetchone(), TableMapEvent)
-#         self.assertIsInstance(self.stream.fetchone(), WriteRowsEvent)
-#
-#         self.assertIsInstance(self.stream.fetchone(), XidEvent)
-#
-#         self.assertGreater(self.stream.log_pos, 0)
-#
+    @run_until_complete
+    def test_log_pos_handles_disconnects(self):
+
+        self.stream.close()
+        self.stream = yield from create_binlog_stream(
+            self.database,
+            server_id=1024,
+            resume_stream=False,
+            only_events = [FormatDescriptionEvent, QueryEvent, TableMapEvent,
+                           WriteRowsEvent, XidEvent],
+            loop=self.loop
+        )
+
+        query = "CREATE TABLE test (id INT  PRIMARY KEY AUTO_INCREMENT, " \
+                "data VARCHAR (50) NOT NULL)"
+        yield from self.execute(query)
+        query = "INSERT INTO test (data) VALUES('Hello')"
+        yield from self.execute(query)
+        yield from self.execute("COMMIT")
+
+        event = yield from self.stream.fetchone()
+        self.assertIsInstance(event, FormatDescriptionEvent)
+        self.assertGreater(self.stream.log_pos, 0)
+        event = yield from self.stream.fetchone()
+        self.assertIsInstance(event, QueryEvent)
+
+        event = yield from self.stream.fetchone()
+        self.assertIsInstance(event, QueryEvent)
+        event = yield from self.stream.fetchone()
+        self.assertIsInstance(event, TableMapEvent)
+        event = yield from self.stream.fetchone()
+        self.assertIsInstance(event, WriteRowsEvent)
+
+        event = yield from self.stream.fetchone()
+        self.assertIsInstance(event, XidEvent)
+
+        self.assertGreater(self.stream.log_pos, 0)
 #
 # class TestMultipleRowBinLogStreamReader(base.PyMySQLReplicationTestCase):
 #
