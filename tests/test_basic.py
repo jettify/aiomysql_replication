@@ -376,6 +376,7 @@ class TestBasicBinLogStreamReader(base.ReplicationTestCase):
         self.assertEqual(event.rows[0]["after_values"]["id"], None)
         self.assertEqual(event.rows[0]["after_values"]["data"], "World")
 
+    @run_until_complete
     def test_log_pos(self):
         query = "CREATE TABLE test (id INT NOT NULL AUTO_INCREMENT, " \
                 "data VARCHAR (50) NOT NULL, PRIMARY KEY (id))"
@@ -402,7 +403,8 @@ class TestBasicBinLogStreamReader(base.ReplicationTestCase):
             resume_stream=True,
             log_file=log_file,
             log_pos=log_pos,
-            ignored_events=self.ignoredEvents()
+            ignored_events=self.ignoredEvents(),
+            loop=self.loop
         )
         event = yield from self.stream.fetchone()
         self.assertIsInstance(event, RotateEvent)
