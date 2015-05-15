@@ -499,44 +499,50 @@ class TestMultipleRowBinLogStreamReader(base.ReplicationTestCase):
 
         self.assertEqual(event.rows[1]["values"]["id"], 2)
         self.assertEqual(event.rows[1]["values"]["data"], "World")
-#
-#     def test_update_multiple_row_event(self):
-#         query = "CREATE TABLE test (id INT NOT NULL AUTO_INCREMENT, data VARCHAR (50) NOT NULL, PRIMARY KEY (id))"
-#         yield from self.execute(query)
-#         query = "INSERT INTO test (data) VALUES('Hello')"
-#         yield from self.execute(query)
-#         query = "INSERT INTO test (data) VALUES('World')"
-#         yield from self.execute(query)
-#
-#         self.resetBinLog()
-#
-#         query = "UPDATE test SET data = 'Toto'"
-#         yield from self.execute(query)
-#         yield from self.execute("COMMIT")
-#
-#         self.assertIsInstance(self.stream.fetchone(), RotateEvent)
-#         self.assertIsInstance(self.stream.fetchone(), FormatDescriptionEvent)
-#         #QueryEvent for the BEGIN
-#         self.assertIsInstance(self.stream.fetchone(), QueryEvent)
-#
-#         self.assertIsInstance(self.stream.fetchone(), TableMapEvent)
-#
-#         event = self.stream.fetchone()
-#         if self.isMySQL56AndMore():
-#             self.assertEqual(event.event_type, UPDATE_ROWS_EVENT_V2)
-#         else:
-#             self.assertEqual(event.event_type, UPDATE_ROWS_EVENT_V1)
-#         self.assertIsInstance(event, UpdateRowsEvent)
-#         self.assertEqual(len(event.rows), 2)
-#         self.assertEqual(event.rows[0]["before_values"]["id"], 1)
-#         self.assertEqual(event.rows[0]["before_values"]["data"], "Hello")
-#         self.assertEqual(event.rows[0]["after_values"]["id"], 1)
-#         self.assertEqual(event.rows[0]["after_values"]["data"], "Toto")
-#
-#         self.assertEqual(event.rows[1]["before_values"]["id"], 2)
-#         self.assertEqual(event.rows[1]["before_values"]["data"], "World")
-#         self.assertEqual(event.rows[1]["after_values"]["id"], 2)
-#         self.assertEqual(event.rows[1]["after_values"]["data"], "Toto")
+
+    @run_until_complete
+    def test_update_multiple_row_event(self):
+        query = "CREATE TABLE test (id INT NOT NULL AUTO_INCREMENT, " \
+                "data VARCHAR (50) NOT NULL, PRIMARY KEY (id))"
+        yield from self.execute(query)
+        query = "INSERT INTO test (data) VALUES('Hello')"
+        yield from self.execute(query)
+        query = "INSERT INTO test (data) VALUES('World')"
+        yield from self.execute(query)
+
+        yield from self.resetBinLog()
+
+        query = "UPDATE test SET data = 'Toto'"
+        yield from self.execute(query)
+        yield from self.execute("COMMIT")
+
+        event = yield from self.stream.fetchone()
+        self.assertIsInstance(event, RotateEvent)
+        event = yield from self.stream.fetchone()
+        self.assertIsInstance(event, FormatDescriptionEvent)
+        #QueryEvent for the BEGIN
+        event = yield from self.stream.fetchone()
+        self.assertIsInstance(event, QueryEvent)
+
+        event = yield from self.stream.fetchone()
+        self.assertIsInstance(event, TableMapEvent)
+
+        event = yield from self.stream.fetchone()
+        # if self.isMySQL56AndMore():
+        self.assertEqual(event.event_type, BinLog.UPDATE_ROWS_EVENT_V2)
+        # else:
+        #     self.assertEqual(event.event_type, UPDATE_ROWS_EVENT_V1)
+        self.assertIsInstance(event, UpdateRowsEvent)
+        self.assertEqual(len(event.rows), 2)
+        self.assertEqual(event.rows[0]["before_values"]["id"], 1)
+        self.assertEqual(event.rows[0]["before_values"]["data"], "Hello")
+        self.assertEqual(event.rows[0]["after_values"]["id"], 1)
+        self.assertEqual(event.rows[0]["after_values"]["data"], "Toto")
+
+        self.assertEqual(event.rows[1]["before_values"]["id"], 2)
+        self.assertEqual(event.rows[1]["before_values"]["data"], "World")
+        self.assertEqual(event.rows[1]["after_values"]["id"], 2)
+        self.assertEqual(event.rows[1]["after_values"]["data"], "Toto")
 #
 #     def test_delete_multiple_row_event(self):
 #         query = "CREATE TABLE test (id INT NOT NULL AUTO_INCREMENT, data VARCHAR (50) NOT NULL, PRIMARY KEY (id))"
