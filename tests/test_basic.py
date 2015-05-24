@@ -584,55 +584,73 @@ class TestMultipleRowBinLogStreamReader(base.ReplicationTestCase):
 
         self.assertEqual(event.rows[1]["values"]["id"], 2)
         self.assertEqual(event.rows[1]["values"]["data"], "World")
-#
-#
-# class TestGtidBinLogStreamReader(base.PyMySQLReplicationTestCase):
-#     def test_read_query_event(self):
-#         query = "CREATE TABLE test (id INT NOT NULL, data VARCHAR (50) NOT NULL, PRIMARY KEY (id))"
-#         yield from self.execute(query)
-#         query = "SELECT @@global.gtid_executed;"
-#         gtid = yield from self.execute(query).fetchone()[0]
-#
-#         self.stream.close()
-#         self.stream = yield from create_binlog_stream(
-#             self.database, server_id=1024, blocking=True, auto_position=gtid)
-#
-#         self.assertIsInstance(self.stream.fetchone(), RotateEvent)
-#         self.assertIsInstance(self.stream.fetchone(), FormatDescriptionEvent)
-#
-#         # Insert first event
-#         query = "BEGIN;"
-#         yield from self.execute(query)
-#         query = "INSERT INTO test (id, data) VALUES(1, 'Hello');"
-#         yield from self.execute(query)
-#         query = "COMMIT;"
-#         yield from self.execute(query)
-#
-#         firstevent = self.stream.fetchone()
-#         self.assertIsInstance(firstevent, GtidEvent)
-#
-#         self.assertIsInstance(self.stream.fetchone(), QueryEvent)
-#         self.assertIsInstance(self.stream.fetchone(), TableMapEvent)
-#         self.assertIsInstance(self.stream.fetchone(), WriteRowsEvent)
-#         self.assertIsInstance(self.stream.fetchone(), XidEvent)
-#
-#         # Insert second event
-#         query = "BEGIN;"
-#         yield from self.execute(query)
-#         query = "INSERT INTO test (id, data) VALUES(2, 'Hello');"
-#         yield from self.execute(query)
-#         query = "COMMIT;"
-#         yield from self.execute(query)
-#
-#         secondevent = self.stream.fetchone()
-#         self.assertIsInstance(secondevent, GtidEvent)
-#
-#         self.assertIsInstance(self.stream.fetchone(), QueryEvent)
-#         self.assertIsInstance(self.stream.fetchone(), TableMapEvent)
-#         self.assertIsInstance(self.stream.fetchone(), WriteRowsEvent)
-#         self.assertIsInstance(self.stream.fetchone(), XidEvent)
-#
-#         self.assertEqual(secondevent.gno, firstevent.gno + 1)
+
+
+class TestGtidBinLogStreamReader(base.ReplicationTestCase):
+
+    @run_until_complete
+    def test_read_query_event(self):
+        query = "CREATE TABLE test (id INT NOT NULL, " \
+                "data VARCHAR (50) NOT NULL, PRIMARY KEY (id))"
+        yield from self.execute(query)
+        query = "SELECT @@global.gtid_executed;"
+        cursor = yield from self.execute(query)
+        (gtid,) = yield from cursor.fetchone()
+
+        self.stream.close()
+
+        self.stream = yield from create_binlog_stream(
+            self.database, server_id=1024, blocking=True, auto_position=gtid,
+            loop=self.loop)
+
+        event = yield from self.stream.fetchone()
+        self.assertIsInstance(event, RotateEvent)
+        event = yield from self.stream.fetchone()
+        self.assertIsInstance(event, FormatDescriptionEvent)
+
+        # Insert first event
+        query = "BEGIN;"
+        yield from self.execute(query)
+        query = "INSERT INTO test (id, data) VALUES(1, 'Hello');"
+        yield from self.execute(query)
+        query = "COMMIT;"
+        yield from self.execute(query)
+
+        firstevent = yield from self.stream.fetchone()
+        self.assertIsInstance(firstevent, GtidEvent)
+
+        event = yield from self.stream.fetchone()
+        self.assertIsInstance(event, QueryEvent)
+        event = yield from self.stream.fetchone()
+        self.assertIsInstance(event, TableMapEvent)
+        event = yield from self.stream.fetchone()
+        self.assertIsInstance(event, WriteRowsEvent)
+        event = yield from self.stream.fetchone()
+        self.assertIsInstance(event, XidEvent)
+
+        # Insert second event
+        query = "BEGIN;"
+        yield from self.execute(query)
+        query = "INSERT INTO test (id, data) VALUES(2, 'Hello');"
+        yield from self.execute(query)
+        query = "COMMIT;"
+        yield from self.execute(query)
+
+        secondevent = yield from self.stream.fetchone()
+        self.assertIsInstance(secondevent, GtidEvent)
+
+        event = yield from self.stream.fetchone()
+        self.assertIsInstance(event, QueryEvent)
+        event = yield from self.stream.fetchone()
+        self.assertIsInstance(event, TableMapEvent)
+
+        event = yield from self.stream.fetchone()
+        self.assertIsInstance(event, WriteRowsEvent)
+
+        event = yield from self.stream.fetchone()
+        self.assertIsInstance(event, XidEvent)
+
+        self.assertEqual(secondevent.gno, firstevent.gno + 1)
 #
 #     def test_position_gtid(self):
 #         query = "CREATE TABLE test (id INT NOT NULL, data VARCHAR (50) NOT NULL, PRIMARY KEY (id))"
