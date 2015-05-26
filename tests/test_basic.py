@@ -651,29 +651,41 @@ class TestGtidBinLogStreamReader(base.ReplicationTestCase):
         self.assertIsInstance(event, XidEvent)
 
         self.assertEqual(secondevent.gno, firstevent.gno + 1)
-#
-#     def test_position_gtid(self):
-#         query = "CREATE TABLE test (id INT NOT NULL, data VARCHAR (50) NOT NULL, PRIMARY KEY (id))"
-#         yield from self.execute(query)
-#         query = "BEGIN;"
-#         yield from self.execute(query)
-#         query = "INSERT INTO test (id, data) VALUES(1, 'Hello');"
-#         yield from self.execute(query)
-#         query = "COMMIT;"
-#         yield from self.execute(query)
-#
-#         query = "CREATE TABLE test2 (id INT NOT NULL, data VARCHAR (50) NOT NULL, PRIMARY KEY (id))"
-#         yield from self.execute(query)
-#         query = "SELECT @@global.gtid_executed;"
-#         gtid = yield from self.execute(query).fetchone()[0]
-#
-#         self.stream.close()
-#         self.stream = yield from create_binlog_stream(
-#             self.database, server_id=1024, blocking=True, auto_position=gtid)
-#
-#         self.assertIsInstance(self.stream.fetchone(), RotateEvent)
-#         self.assertIsInstance(self.stream.fetchone(), FormatDescriptionEvent)
-#         self.assertIsInstance(self.stream.fetchone(), GtidEvent)
-#         event = self.stream.fetchone()
-#
-#         self.assertEqual(event.query, 'CREATE TABLE test2 (id INT NOT NULL, data VARCHAR (50) NOT NULL, PRIMARY KEY (id))');
+
+    @run_until_complete
+    def test_position_gtid(self):
+        query = "CREATE TABLE test (id INT NOT NULL, " \
+                "data VARCHAR (50) NOT NULL, PRIMARY KEY (id))"
+        yield from self.execute(query)
+        query = "BEGIN;"
+        yield from self.execute(query)
+        query = "INSERT INTO test (id, data) VALUES(1, 'Hello');"
+        yield from self.execute(query)
+        query = "COMMIT;"
+        yield from self.execute(query)
+
+        query = "CREATE TABLE test2 (id INT NOT NULL, " \
+                "data VARCHAR (50) NOT NULL, PRIMARY KEY (id))"
+        yield from self.execute(query)
+        query = "SELECT @@global.gtid_executed;"
+        cursor = yield from self.execute(query)
+        (gtid,) = yield from cursor.fetchone()
+
+        self.stream.close()
+        self.stream = yield from create_binlog_stream(
+            self.database, server_id=1024, blocking=True, auto_position=gtid,
+            loop=self.loop)
+
+        event = yield from self.stream.fetchone()
+        self.assertIsInstance(event, RotateEvent)
+
+        event = yield from self.stream.fetchone()
+        self.assertIsInstance(event, FormatDescriptionEvent)
+
+        event = yield from self.stream.fetchone()
+        self.assertIsInstance(event, GtidEvent)
+
+        event = yield from self.stream.fetchone()
+        self.assertEqual(event.query, 'CREATE TABLE test2 (id INT NOT NULL, '
+                                      'data VARCHAR (50) NOT NULL, '
+                                      'PRIMARY KEY (id))');
