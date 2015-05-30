@@ -1,7 +1,7 @@
 from tests import base
 from aiomysql_replication import create_binlog_stream
-from aiomysql_replication.event import *
-from aiomysql_replication.row_event import *
+from aiomysql_replication.event import *  # noqa
+from aiomysql_replication.row_event import *  # noqa
 from tests.base import run_until_complete
 
 
@@ -141,7 +141,7 @@ class TestBasicBinLogStreamReader(base.ReplicationTestCase):
             self.database,
             server_id=1024,
             only_events=[WriteRowsEvent],
-            only_tables = ["test_2"], loop=self.loop)
+            only_tables=["test_2"], loop=self.loop)
 
         query = "CREATE TABLE test_2 (id INT NOT NULL AUTO_INCREMENT, " \
                 "data VARCHAR (50) NOT NULL, PRIMARY KEY (id))"
@@ -172,10 +172,10 @@ class TestBasicBinLogStreamReader(base.ReplicationTestCase):
         self.assertIsInstance(event, RotateEvent)
         event = yield from self.stream.fetchone()
         self.assertIsInstance(event, FormatDescriptionEvent)
-        #QueryEvent for the Create Table
+        # QueryEvent for the Create Table
         event = yield from self.stream.fetchone()
         self.assertIsInstance(event, QueryEvent)
-        #QueryEvent for the BEGIN
+        # QueryEvent for the BEGIN
         event = yield from self.stream.fetchone()
         self.assertIsInstance(event, QueryEvent)
 
@@ -213,7 +213,7 @@ class TestBasicBinLogStreamReader(base.ReplicationTestCase):
         event = yield from self.stream.fetchone()
         self.assertIsInstance(event, FormatDescriptionEvent)
 
-        #QueryEvent for the BEGIN
+        # QueryEvent for the BEGIN
         event = yield from self.stream.fetchone()
         self.assertIsInstance(event, QueryEvent)
 
@@ -248,7 +248,7 @@ class TestBasicBinLogStreamReader(base.ReplicationTestCase):
         event = yield from self.stream.fetchone()
         self.assertIsInstance(event, FormatDescriptionEvent)
 
-        #QueryEvent for the BEGIN
+        # QueryEvent for the BEGIN
         event = yield from self.stream.fetchone()
         self.assertIsInstance(event, QueryEvent)
 
@@ -281,10 +281,10 @@ class TestBasicBinLogStreamReader(base.ReplicationTestCase):
         self.assertIsInstance(event, RotateEvent)
         event = yield from self.stream.fetchone()
         self.assertIsInstance(event, FormatDescriptionEvent)
-        #QueryEvent for the Create Table
+        # QueryEvent for the Create Table
         event = yield from self.stream.fetchone()
         self.assertIsInstance(event, QueryEvent)
-        #QueryEvent for the BEGIN
+        # QueryEvent for the BEGIN
         event = yield from self.stream.fetchone()
         self.assertIsInstance(event, QueryEvent)
 
@@ -322,7 +322,7 @@ class TestBasicBinLogStreamReader(base.ReplicationTestCase):
         event = yield from self.stream.fetchone()
         self.assertIsInstance(event, FormatDescriptionEvent)
 
-        #QueryEvent for the BEGIN
+        # QueryEvent for the BEGIN
         event = yield from self.stream.fetchone()
         self.assertIsInstance(event, QueryEvent)
 
@@ -358,7 +358,7 @@ class TestBasicBinLogStreamReader(base.ReplicationTestCase):
         event = yield from self.stream.fetchone()
         self.assertIsInstance(event, FormatDescriptionEvent)
 
-        #QueryEvent for the BEGIN
+        # QueryEvent for the BEGIN
         event = yield from self.stream.fetchone()
         self.assertIsInstance(event, QueryEvent)
 
@@ -430,8 +430,8 @@ class TestBasicBinLogStreamReader(base.ReplicationTestCase):
             self.database,
             server_id=1024,
             resume_stream=False,
-            only_events = [FormatDescriptionEvent, QueryEvent, TableMapEvent,
-                           WriteRowsEvent, XidEvent],
+            only_events=[FormatDescriptionEvent, QueryEvent, TableMapEvent,
+                         WriteRowsEvent, XidEvent],
             loop=self.loop
         )
 
@@ -460,8 +460,8 @@ class TestBasicBinLogStreamReader(base.ReplicationTestCase):
 
         self.assertGreater(self.stream.log_pos, 0)
 
-class TestMultipleRowBinLogStreamReader(base.ReplicationTestCase):
 
+class TestMultipleRowBinLogStreamReader(base.ReplicationTestCase):
     def ignoredEvents(self):
         return [GtidEvent]
 
@@ -480,7 +480,7 @@ class TestMultipleRowBinLogStreamReader(base.ReplicationTestCase):
         self.assertIsInstance(event, RotateEvent)
         event = yield from self.stream.fetchone()
         self.assertIsInstance(event, FormatDescriptionEvent)
-        #QueryEvent for the BEGIN
+        # QueryEvent for the BEGIN
         event = yield from self.stream.fetchone()
         self.assertIsInstance(event, QueryEvent)
 
@@ -520,7 +520,7 @@ class TestMultipleRowBinLogStreamReader(base.ReplicationTestCase):
         self.assertIsInstance(event, RotateEvent)
         event = yield from self.stream.fetchone()
         self.assertIsInstance(event, FormatDescriptionEvent)
-        #QueryEvent for the BEGIN
+        # QueryEvent for the BEGIN
         event = yield from self.stream.fetchone()
         self.assertIsInstance(event, QueryEvent)
 
@@ -565,7 +565,7 @@ class TestMultipleRowBinLogStreamReader(base.ReplicationTestCase):
         event = yield from self.stream.fetchone()
         self.assertIsInstance(event, FormatDescriptionEvent)
 
-        #QueryEvent for the BEGIN
+        # QueryEvent for the BEGIN
         event = yield from self.stream.fetchone()
         self.assertIsInstance(event, QueryEvent)
 
@@ -587,7 +587,6 @@ class TestMultipleRowBinLogStreamReader(base.ReplicationTestCase):
 
 
 class TestGtidBinLogStreamReader(base.ReplicationTestCase):
-
     @run_until_complete
     def test_read_query_event(self):
         query = "CREATE TABLE test (id INT NOT NULL, " \
@@ -688,4 +687,4 @@ class TestGtidBinLogStreamReader(base.ReplicationTestCase):
         event = yield from self.stream.fetchone()
         self.assertEqual(event.query, 'CREATE TABLE test2 (id INT NOT NULL, '
                                       'data VARCHAR (50) NOT NULL, '
-                                      'PRIMARY KEY (id))');
+                                      'PRIMARY KEY (id))')
