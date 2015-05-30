@@ -6,6 +6,9 @@ FLAGS=
 flake:
 	flake8 aiomysql_replication tests examples
 
+flakelib:
+	flake8 aiomysql_replication
+
 test: export PYTHONASYNCIODEBUG=1
 test: flake
 	nosetests -s $(FLAGS) ./tests/
