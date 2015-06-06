@@ -1,11 +1,11 @@
-from tests import base
 from aiomysql_replication import create_binlog_stream
 from aiomysql_replication.event import *  # noqa
 from aiomysql_replication.row_event import *  # noqa
-from tests.base import run_until_complete
+
+from .base import run_until_complete, ReplicationTestCase
 
 
-class TestBasicBinLogStreamReader(base.ReplicationTestCase):
+class TestBasicBinLogStreamReader(ReplicationTestCase):
     def ignoredEvents(self):
         return [GtidEvent]
 
@@ -461,7 +461,7 @@ class TestBasicBinLogStreamReader(base.ReplicationTestCase):
         self.assertGreater(self.stream.log_pos, 0)
 
 
-class TestMultipleRowBinLogStreamReader(base.ReplicationTestCase):
+class TestMultipleRowBinLogStreamReader(ReplicationTestCase):
     def ignoredEvents(self):
         return [GtidEvent]
 
@@ -586,7 +586,7 @@ class TestMultipleRowBinLogStreamReader(base.ReplicationTestCase):
         self.assertEqual(event.rows[1]["values"]["data"], "World")
 
 
-class TestGtidBinLogStreamReader(base.ReplicationTestCase):
+class TestGtidBinLogStreamReader(ReplicationTestCase):
     @run_until_complete
     def test_read_query_event(self):
         query = "CREATE TABLE test (id INT NOT NULL, " \

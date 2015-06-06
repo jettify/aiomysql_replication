@@ -1,20 +1,15 @@
-# -*- coding: utf-8 -*-
-
+import copy
 import platform
 import unittest
 from decimal import Decimal
 
-import copy
-
-from tests import base
-from aiomysql_replication.row_event import *
 from aiomysql_replication.event import *
+from aiomysql_replication.row_event import *
+from aiomysql_replication.consts import BinLog
+from .base import ReplicationTestCase
 
 
-__all__ = ["TestDataType"]
-
-
-class TestDataType(base.ReplicationTestCase):
+class TestDataType(ReplicationTestCase):
     def ignoredEvents(self):
         return [GtidEvent]
 
@@ -28,16 +23,16 @@ class TestDataType(base.ReplicationTestCase):
         # QueryEvent for the Create Table
         self.assertIsInstance(self.stream.fetchone(), QueryEvent)
 
-        #QueryEvent for the BEGIN
+        # QueryEvent for the BEGIN
         self.assertIsInstance(self.stream.fetchone(), QueryEvent)
 
         self.assertIsInstance(self.stream.fetchone(), TableMapEvent)
 
         event = self.stream.fetchone()
         if self.isMySQL56AndMore():
-            self.assertEqual(event.event_type, WRITE_ROWS_EVENT_V2)
+            self.assertEqual(event.event_type, BinLog.WRITE_ROWS_EVENT_V2)
         else:
-            self.assertEqual(event.event_type, WRITE_ROWS_EVENT_V1)
+            self.assertEqual(event.event_type, BinLog.WRITE_ROWS_EVENT_V1)
         self.assertIsInstance(event, WriteRowsEvent)
         return event
 

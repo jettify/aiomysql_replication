@@ -6,10 +6,8 @@ from aiomysql_replication.event import GtidEvent
 from tests import base
 
 
-__all__ = ["TestDataObjects"]
-
-
 class TestDataObjects(base.ReplicationTestCase):
+
     def ignoredEvents(self):
         return [GtidEvent]
 
@@ -68,7 +66,3 @@ class TestDataObjects(base.ReplicationTestCase):
         self.assertIn("column_schemas", serialized)
 
         self.assertEqual(tbl, Table(**serialized))
-
-
-if __name__ == "__main__":
-    unittest.main()
