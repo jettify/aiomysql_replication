@@ -11,6 +11,10 @@ from .table import Table
 from .utils import byte2int
 
 
+__all__ = ['RowsEvent', 'DeleteRowsEvent', 'WriteRowsEvent', 'UpdateRowsEvent',
+           'TableMapEvent']
+
+
 class RowsEvent(BinLogEvent):
     def __init__(self, from_packet, event_size, table_map, ctl_connection,
                  **kwargs):

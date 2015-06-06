@@ -4,6 +4,10 @@ import datetime
 from .utils import byte2int, int2byte
 
 
+__all__ = ['BinLogEvent', 'GtidEvent', 'RotateEvent', 'FormatDescriptionEvent',
+           'StopEvent', 'XidEvent', 'QueryEvent', 'NotImplementedEvent']
+
+
 class BinLogEvent(object):
     def __init__(self, from_packet, event_size, table_map, ctl_connection,
                  only_tables=None,
