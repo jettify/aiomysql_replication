@@ -41,7 +41,7 @@ class BinLogPacketWrapper(object):
         BinLog.WRITE_ROWS_EVENT_V2: row_event.WriteRowsEvent,
         BinLog.DELETE_ROWS_EVENT_V2: row_event.DeleteRowsEvent,
         BinLog.TABLE_MAP_EVENT: row_event.TableMapEvent,
-        #5.6 GTID enabled replication events
+        # 5.6 GTID enabled replication events
         BinLog.ANONYMOUS_GTID_LOG_EVENT: event.NotImplementedEvent,
         BinLog.PREVIOUS_GTIDS_LOG_EVENT: event.NotImplementedEvent
 
@@ -84,16 +84,17 @@ class BinLogPacketWrapper(object):
             event_size_without_header = self.event_size - 19
 
         self.event = None
-        event_class = self._event_map.get(self.event_type, event.NotImplementedEvent)
+        event_class = self._event_map.get(self.event_type,
+                                          event.NotImplementedEvent)
 
         if event_class not in allowed_events:
             return
         self.event = event_class(self, event_size_without_header, table_map,
                                  ctl_connection,
-                                 only_tables = only_tables,
-                                 only_schemas = only_schemas,
-                                 freeze_schema = freeze_schema)
-        if self.event._processed == False:
+                                 only_tables=only_tables,
+                                 only_schemas=only_schemas,
+                                 freeze_schema=freeze_schema)
+        if not self.event._processed:
             self.event = None
 
     def read(self, size):
