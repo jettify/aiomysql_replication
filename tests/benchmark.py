@@ -1,17 +1,10 @@
-# -*- coding: utf-8 -*-
-#
-# This is a sample script in order to make benchmark
-# on library speed.
-#
-#
-
 import pymysql
 import time
-import random
 import os
 from aiomysql_replication import BinLogStreamReader
-from aiomysql_replication.row_event import *
-import cProfile
+from aiomysql_replication.row_event import UpdateRowsEvent
+# from aiomysql_replication.row_event import *
+# import cProfile
 
 
 def execute(con, query):
@@ -19,19 +12,21 @@ def execute(con, query):
     c.execute(query)
     return c
 
+
 def consume_events():
     stream = BinLogStreamReader(connection_settings=database,
                                 server_id=3,
                                 resume_stream=False,
                                 blocking=True,
-                                only_events = [UpdateRowsEvent],
-                                only_tables = ['test'] )
+                                only_events=[UpdateRowsEvent],
+                                only_tables=['test'])
     start = time.clock()
     i = 0.0
     for binlogevent in stream:
-            i += 1.0
-            if i % 1000 == 0:
-                print("%d event by seconds (%d total)" % (i / (time.clock() - start), i))
+        i += 1.0
+        if i % 1000 == 0:
+            print("{} event by seconds ({})".format(i / (time.clock() - start),
+                                                    i))
     stream.close()
 
 
@@ -55,7 +50,6 @@ execute(conn, "CREATE TABLE test2 (i INT) ENGINE = MEMORY")
 execute(conn, "INSERT INTO test2 VALUES(1)")
 execute(conn, "RESET MASTER")
 
-
 if os.fork() != 0:
     print("Start insert data")
     while True:
@@ -63,5 +57,4 @@ if os.fork() != 0:
         execute(conn, "UPDATE test2 SET i = i + 1;")
 else:
     consume_events()
-    #cProfile.run('consume_events()')
-
+    # cProfile.run('consume_events()')
