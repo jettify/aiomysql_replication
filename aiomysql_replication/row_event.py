@@ -36,26 +36,26 @@ class RowsEvent(BinLogEvent):
             self._processed = False
             return
 
-        if self._only_tables is not None and self.table not in self._only_tables:
+        if (self._only_tables is not None and
+                self.table not in self._only_tables):
             self._processed = False
             return
-        if self._only_schemas is not None and self.schema not in self._only_schemas:
+        if (self._only_schemas is not None and
+                self.schema not in self._only_schemas):
             self._processed = False
             return
-
 
         # Event V2
         if self.event_type == BinLog.WRITE_ROWS_EVENT_V2 or \
-                        self.event_type == BinLog.DELETE_ROWS_EVENT_V2 or \
-                        self.event_type == BinLog.UPDATE_ROWS_EVENT_V2:
-            self.flags, self.extra_data_length = struct.unpack('<HH',
-                                                               self.packet.read(
-                                                                   4))
+                self.event_type == BinLog.DELETE_ROWS_EVENT_V2 or \
+                self.event_type == BinLog.UPDATE_ROWS_EVENT_V2:
+            self.flags, self.extra_data_length = struct.unpack(
+                '<HH', self.packet.read(4))
             self.extra_data = self.packet.read(self.extra_data_length / 8)
         else:
             self.flags = struct.unpack('<H', self.packet.read(2))[0]
 
-        #Body
+        # Body
         self.number_of_columns = self.packet.read_length_coded_binary()
         self.columns = self.table_map[self.table_id].columns
 
@@ -112,8 +112,8 @@ class RowsEvent(BinLogEvent):
                 values[name] = struct.unpack("<f", self.packet.read(4))[0]
             elif column.type == FieldType.DOUBLE:
                 values[name] = struct.unpack("<d", self.packet.read(8))[0]
-            elif column.type == FieldType.VARCHAR or \
-                            column.type == FieldType.STRING:
+            elif (column.type == FieldType.VARCHAR or
+                  column.type == FieldType.STRING):
                 if column.max_length > 255:
                     values[name] = self._read_string(2, column)
                 else:
@@ -514,8 +514,8 @@ class TableMapEvent(BinLogEvent):
 
     def __init__(self, from_packet, event_size, table_map, ctl_connection,
                  **kwargs):
-        super(TableMapEvent, self).__init__(from_packet, event_size,
-                                            table_map, ctl_connection, **kwargs)
+        super().__init__(from_packet, event_size, table_map, ctl_connection,
+                         **kwargs)
         self._only_tables = kwargs["only_tables"]
         self._only_schemas = kwargs["only_schemas"]
         self._freeze_schema = kwargs["freeze_schema"]
@@ -536,10 +536,12 @@ class TableMapEvent(BinLogEvent):
         self.table_length = byte2int(self.packet.read(1))
         self.table = self.packet.read(self.table_length).decode()
 
-        if self._only_tables is not None and self.table not in self._only_tables:
+        if (self._only_tables is not None
+                and self.table not in self._only_tables):
             self._processed = False
             return
-        if self._only_schemas is not None and self.schema not in self._only_schemas:
+        if self._only_schemas is not None \
+                and self.schema not in self._only_schemas:
             self._processed = False
             return
 
@@ -552,14 +554,13 @@ class TableMapEvent(BinLogEvent):
         self._table_map = table_map
         self._from_packet = from_packet
 
-
     @asyncio.coroutine
     def load_table_schema(self):
         if self.table_id in self._table_map:
             self.column_schemas = self.table_map[self.table_id].column_schemas
         else:
-            self.column_schemas = yield from self._ctl_connection._get_table_information(
-                self.schema, self.table)
+            tbl_info = self._ctl_connection._get_table_information
+            self.column_schemas = yield from tbl_info(self.schema, self.table)
 
         # Read columns meta data
         column_types = list(self.packet.read(self.column_count))
