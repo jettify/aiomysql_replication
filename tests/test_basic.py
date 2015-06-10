@@ -1,6 +1,7 @@
 from aiomysql_replication import create_binlog_stream
 from aiomysql_replication.event import *  # noqa
 from aiomysql_replication.row_event import *  # noqa
+from aiomysql_replication.consts import BinLog
 
 from .base import run_until_complete, ReplicationTestCase
 
