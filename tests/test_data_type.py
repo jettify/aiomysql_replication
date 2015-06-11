@@ -1,3 +1,4 @@
+import asyncio
 import copy
 import platform
 import unittest
@@ -6,50 +7,60 @@ from decimal import Decimal
 from aiomysql_replication.event import *
 from aiomysql_replication.row_event import *
 from aiomysql_replication.consts import BinLog
-from .base import ReplicationTestCase
+from .base import ReplicationTestCase, run_until_complete
 
 
 class TestDataType(ReplicationTestCase):
+
     def ignoredEvents(self):
         return [GtidEvent]
 
+    @asyncio.coroutine
     def create_and_insert_value(self, create_query, insert_query):
-        self.execute(create_query)
-        self.execute(insert_query)
-        self.execute("COMMIT")
+        yield from self.execute(create_query)
+        yield from self.execute(insert_query)
+        yield from self.execute("COMMIT")
 
-        self.assertIsInstance(self.stream.fetchone(), RotateEvent)
-        self.assertIsInstance(self.stream.fetchone(), FormatDescriptionEvent)
+        event = yield from self.stream.fetchone()
+        self.assertIsInstance(event, RotateEvent)
+        event = yield from self.stream.fetchone()
+        self.assertIsInstance(event, FormatDescriptionEvent)
         # QueryEvent for the Create Table
-        self.assertIsInstance(self.stream.fetchone(), QueryEvent)
+        event = yield from self.stream.fetchone()
+        self.assertIsInstance(event, QueryEvent)
 
         # QueryEvent for the BEGIN
-        self.assertIsInstance(self.stream.fetchone(), QueryEvent)
+        event = yield from self.stream.fetchone()
+        self.assertIsInstance(event, QueryEvent)
+        event = yield from self.stream.fetchone()
+        self.assertIsInstance(event, TableMapEvent)
 
-        self.assertIsInstance(self.stream.fetchone(), TableMapEvent)
-
-        event = self.stream.fetchone()
-        if self.isMySQL56AndMore():
-            self.assertEqual(event.event_type, BinLog.WRITE_ROWS_EVENT_V2)
-        else:
-            self.assertEqual(event.event_type, BinLog.WRITE_ROWS_EVENT_V1)
+        event = yield from self.stream.fetchone()
+        # if self.isMySQL56AndMore():
+        self.assertEqual(event.event_type, BinLog.WRITE_ROWS_EVENT_V2)
+        # else:
+        #     self.assertEqual(event.event_type, BinLog.WRITE_ROWS_EVENT_V1)
         self.assertIsInstance(event, WriteRowsEvent)
         return event
 
+    @run_until_complete
     def test_decimal(self):
         create_query = "CREATE TABLE test (test DECIMAL(2,1))"
         insert_query = "INSERT INTO test VALUES(4.2)"
-        event = self.create_and_insert_value(create_query, insert_query)
+        event = yield from self.create_and_insert_value(create_query,
+                                                        insert_query)
         self.assertEqual(event.columns[0].precision, 2)
         self.assertEqual(event.columns[0].decimals, 1)
         self.assertEqual(event.rows[0]["values"]["test"], Decimal("4.2"))
 
+    @run_until_complete
     def test_decimal_long_values(self):
         create_query = "CREATE TABLE test (\
             test DECIMAL(20,10) \
         )"
         insert_query = "INSERT INTO test VALUES(42000.123456)"
-        event = self.create_and_insert_value(create_query, insert_query)
+        event = yield from self.create_and_insert_value(create_query,
+                                                        insert_query)
         self.assertEqual(event.rows[0]["values"]["test"],
                          Decimal("42000.123456"))
 
