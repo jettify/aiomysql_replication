@@ -86,30 +86,36 @@ class TestDataType(ReplicationTestCase):
         self.assertEqual(event.rows[0]["values"]["test"],
                          Decimal("9000000123.0000012345"))
 
+    @run_until_complete
     def test_decimal_negative_values(self):
         create_query = "CREATE TABLE test (\
             test DECIMAL(20,10) \
         )"
         insert_query = "INSERT INTO test VALUES(-42000.123456)"
-        event = self.create_and_insert_value(create_query, insert_query)
+        event = yield from self.create_and_insert_value(create_query,
+                                                        insert_query)
         self.assertEqual(event.rows[0]["values"]["test"],
                          Decimal("-42000.123456"))
 
+    @run_until_complete
     def test_decimal_two_values(self):
         create_query = "CREATE TABLE test (\
             test DECIMAL(2,1), \
             test2 DECIMAL(20,10) \
         )"
         insert_query = "INSERT INTO test VALUES(4.2, 42000.123456)"
-        event = self.create_and_insert_value(create_query, insert_query)
+        event = yield from self.create_and_insert_value(create_query,
+                                                        insert_query)
         self.assertEqual(event.rows[0]["values"]["test"], Decimal("4.2"))
         self.assertEqual(event.rows[0]["values"]["test2"],
                          Decimal("42000.123456"))
 
+    @run_until_complete
     def test_decimal_with_zero_scale_1(self):
         create_query = "CREATE TABLE test (test DECIMAL(23,0))"
         insert_query = "INSERT INTO test VALUES(10)"
-        event = self.create_and_insert_value(create_query, insert_query)
+        event = yield from self.create_and_insert_value(create_query,
+                                                        insert_query)
         self.assertEqual(event.rows[0]["values"]["test"], Decimal("10"))
 
     def test_decimal_with_zero_scale_2(self):
