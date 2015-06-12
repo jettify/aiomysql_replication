@@ -121,40 +121,40 @@ class TestDataType(ReplicationTestCase):
     def test_decimal_with_zero_scale_2(self):
         create_query = "CREATE TABLE test (test DECIMAL(23,0))"
         insert_query = "INSERT INTO test VALUES(12345678912345678912345)"
-        event = self.create_and_insert_value(create_query, insert_query)
+        event = yield from self.create_and_insert_value(create_query, insert_query)
         self.assertEqual(event.rows[0]["values"]["test"],
                          Decimal("12345678912345678912345"))
 
     def test_decimal_with_zero_scale_3(self):
         create_query = "CREATE TABLE test (test DECIMAL(23,0))"
         insert_query = "INSERT INTO test VALUES(100000.0)"
-        event = self.create_and_insert_value(create_query, insert_query)
+        event = yield from self.create_and_insert_value(create_query, insert_query)
         self.assertEqual(event.rows[0]["values"]["test"], Decimal("100000"))
 
     def test_decimal_with_zero_scale_4(self):
         create_query = "CREATE TABLE test (test DECIMAL(23,0))"
         insert_query = "INSERT INTO test VALUES(-100000.0)"
-        event = self.create_and_insert_value(create_query, insert_query)
+        event = yield from self.create_and_insert_value(create_query, insert_query)
         self.assertEqual(event.rows[0]["values"]["test"], Decimal("-100000"))
 
     def test_decimal_with_zero_scale_6(self):
         create_query = "CREATE TABLE test (test DECIMAL(23,0))"
         insert_query = "INSERT INTO test VALUES(-1234567891234567891234)"
-        event = self.create_and_insert_value(create_query, insert_query)
+        event = yield from self.create_and_insert_value(create_query, insert_query)
         self.assertEqual(event.rows[0]["values"]["test"],
                          Decimal("-1234567891234567891234"))
 
     def test_tiny(self):
         create_query = "CREATE TABLE test (id TINYINT UNSIGNED NOT NULL, test TINYINT)"
         insert_query = "INSERT INTO test VALUES(255, -128)"
-        event = self.create_and_insert_value(create_query, insert_query)
+        event = yield from self.create_and_insert_value(create_query, insert_query)
         self.assertEqual(event.rows[0]["values"]["id"], 255)
         self.assertEqual(event.rows[0]["values"]["test"], -128)
 
     def test_tiny_maps_to_boolean_true(self):
         create_query = "CREATE TABLE test (id TINYINT UNSIGNED NOT NULL, test BOOLEAN)"
         insert_query = "INSERT INTO test VALUES(1, TRUE)"
-        event = self.create_and_insert_value(create_query, insert_query)
+        event = yield from self.create_and_insert_value(create_query, insert_query)
         self.assertEqual(event.rows[0]["values"]["id"], 1)
         self.assertEqual(type(event.rows[0]["values"]["test"]), type(1))
         self.assertEqual(event.rows[0]["values"]["test"], 1)
@@ -162,7 +162,7 @@ class TestDataType(ReplicationTestCase):
     def test_tiny_maps_to_boolean_false(self):
         create_query = "CREATE TABLE test (id TINYINT UNSIGNED NOT NULL, test BOOLEAN)"
         insert_query = "INSERT INTO test VALUES(1, FALSE)"
-        event = self.create_and_insert_value(create_query, insert_query)
+        event = yield from self.create_and_insert_value(create_query, insert_query)
         self.assertEqual(event.rows[0]["values"]["id"], 1)
         self.assertEqual(type(event.rows[0]["values"]["test"]), type(0))
         self.assertEqual(event.rows[0]["values"]["test"], 0)
@@ -170,7 +170,7 @@ class TestDataType(ReplicationTestCase):
     def test_tiny_maps_to_none(self):
         create_query = "CREATE TABLE test (id TINYINT UNSIGNED NOT NULL, test BOOLEAN)"
         insert_query = "INSERT INTO test VALUES(1, NULL)"
-        event = self.create_and_insert_value(create_query, insert_query)
+        event = yield from self.create_and_insert_value(create_query, insert_query)
         self.assertEqual(event.rows[0]["values"]["id"], 1)
         self.assertEqual(type(event.rows[0]["values"]["test"]), type(None))
         self.assertEqual(event.rows[0]["values"]["test"], None)
@@ -178,35 +178,35 @@ class TestDataType(ReplicationTestCase):
     def test_short(self):
         create_query = "CREATE TABLE test (id SMALLINT UNSIGNED NOT NULL, test SMALLINT)"
         insert_query = "INSERT INTO test VALUES(65535, -32768)"
-        event = self.create_and_insert_value(create_query, insert_query)
+        event = yield from self.create_and_insert_value(create_query, insert_query)
         self.assertEqual(event.rows[0]["values"]["id"], 65535)
         self.assertEqual(event.rows[0]["values"]["test"], -32768)
 
     def test_long(self):
         create_query = "CREATE TABLE test (id INT UNSIGNED NOT NULL, test INT)"
         insert_query = "INSERT INTO test VALUES(4294967295, -2147483648)"
-        event = self.create_and_insert_value(create_query, insert_query)
+        event = yield from self.create_and_insert_value(create_query, insert_query)
         self.assertEqual(event.rows[0]["values"]["id"], 4294967295)
         self.assertEqual(event.rows[0]["values"]["test"], -2147483648)
 
     def test_float(self):
         create_query = "CREATE TABLE test (id FLOAT NOT NULL, test FLOAT)"
         insert_query = "INSERT INTO test VALUES(42.42, -84.84)"
-        event = self.create_and_insert_value(create_query, insert_query)
+        event = yield from self.create_and_insert_value(create_query, insert_query)
         self.assertEqual(round(event.rows[0]["values"]["id"], 2), 42.42)
         self.assertEqual(round(event.rows[0]["values"]["test"], 2), -84.84)
 
     def test_double(self):
         create_query = "CREATE TABLE test (id DOUBLE NOT NULL, test DOUBLE)"
         insert_query = "INSERT INTO test VALUES(42.42, -84.84)"
-        event = self.create_and_insert_value(create_query, insert_query)
+        event = yield from self.create_and_insert_value(create_query, insert_query)
         self.assertEqual(round(event.rows[0]["values"]["id"], 2), 42.42)
         self.assertEqual(round(event.rows[0]["values"]["test"], 2), -84.84)
 
     def test_timestamp(self):
         create_query = "CREATE TABLE test (test TIMESTAMP);"
         insert_query = "INSERT INTO test VALUES('1984-12-03 12:33:07')"
-        event = self.create_and_insert_value(create_query, insert_query)
+        event = yield from self.create_and_insert_value(create_query, insert_query)
         self.assertEqual(event.rows[0]["values"]["test"],
                          datetime.datetime(1984, 12, 3, 12, 33, 7))
 
@@ -227,7 +227,7 @@ class TestDataType(ReplicationTestCase):
             '1984-12-03 12:33:07.1234',
             '1984-12-03 12:33:07.12345',
             '1984-12-03 12:33:07.123456')'''
-        event = self.create_and_insert_value(create_query, insert_query)
+        event = yield from self.create_and_insert_value(create_query, insert_query)
         self.assertEqual(event.rows[0]["values"]["test0"],
                          datetime.datetime(1984, 12, 3, 12, 33, 7))
         self.assertEqual(event.rows[0]["values"]["test1"],
@@ -246,14 +246,14 @@ class TestDataType(ReplicationTestCase):
     def test_longlong(self):
         create_query = "CREATE TABLE test (id BIGINT UNSIGNED NOT NULL, test BIGINT)"
         insert_query = "INSERT INTO test VALUES(18446744073709551615, -9223372036854775808)"
-        event = self.create_and_insert_value(create_query, insert_query)
+        event = yield from self.create_and_insert_value(create_query, insert_query)
         self.assertEqual(event.rows[0]["values"]["id"], 18446744073709551615)
         self.assertEqual(event.rows[0]["values"]["test"], -9223372036854775808)
 
     def test_int24(self):
         create_query = "CREATE TABLE test (id MEDIUMINT UNSIGNED NOT NULL, test MEDIUMINT, test2 MEDIUMINT, test3 MEDIUMINT, test4 MEDIUMINT, test5 MEDIUMINT)"
         insert_query = "INSERT INTO test VALUES(16777215, 8388607, -8388608, 8, -8, 0)"
-        event = self.create_and_insert_value(create_query, insert_query)
+        event = yield from self.create_and_insert_value(create_query, insert_query)
         self.assertEqual(event.rows[0]["values"]["id"], 16777215)
         self.assertEqual(event.rows[0]["values"]["test"], 8388607)
         self.assertEqual(event.rows[0]["values"]["test2"], -8388608)
@@ -264,60 +264,60 @@ class TestDataType(ReplicationTestCase):
     def test_date(self):
         create_query = "CREATE TABLE test (test DATE);"
         insert_query = "INSERT INTO test VALUES('1984-12-03')"
-        event = self.create_and_insert_value(create_query, insert_query)
+        event = yield from self.create_and_insert_value(create_query, insert_query)
         self.assertEqual(event.rows[0]["values"]["test"],
                          datetime.date(1984, 12, 3))
 
     def test_zero_date(self):
         create_query = "CREATE TABLE test (id INTEGER, test DATE, test2 DATE);"
         insert_query = "INSERT INTO test (id, test2) VALUES(1, '0000-01-21')"
-        event = self.create_and_insert_value(create_query, insert_query)
+        event = yield from self.create_and_insert_value(create_query, insert_query)
         self.assertEqual(event.rows[0]["values"]["test"], None)
         self.assertEqual(event.rows[0]["values"]["test2"], None)
 
     def test_time(self):
         create_query = "CREATE TABLE test (test TIME);"
         insert_query = "INSERT INTO test VALUES('12:33:18')"
-        event = self.create_and_insert_value(create_query, insert_query)
+        event = yield from self.create_and_insert_value(create_query, insert_query)
         self.assertEqual(event.rows[0]["values"]["test"],
                          datetime.time(12, 33, 18))
 
     def test_zero_time(self):
         create_query = "CREATE TABLE test (id INTEGER, test TIME NOT NULL DEFAULT 0);"
         insert_query = "INSERT INTO test (id) VALUES(1)"
-        event = self.create_and_insert_value(create_query, insert_query)
+        event = yield from self.create_and_insert_value(create_query, insert_query)
         self.assertEqual(event.rows[0]["values"]["test"], datetime.time(0, 0))
 
     def test_datetime(self):
         create_query = "CREATE TABLE test (test DATETIME);"
         insert_query = "INSERT INTO test VALUES('1984-12-03 12:33:07')"
-        event = self.create_and_insert_value(create_query, insert_query)
+        event = yield from self.create_and_insert_value(create_query, insert_query)
         self.assertEqual(event.rows[0]["values"]["test"],
                          datetime.datetime(1984, 12, 3, 12, 33, 7))
 
     def test_zero_datetime(self):
         create_query = "CREATE TABLE test (id INTEGER, test DATETIME NOT NULL DEFAULT 0);"
         insert_query = "INSERT INTO test (id) VALUES(1)"
-        event = self.create_and_insert_value(create_query, insert_query)
+        event = yield from self.create_and_insert_value(create_query, insert_query)
         self.assertEqual(event.rows[0]["values"]["test"], None)
 
     def test_broken_datetime(self):
         create_query = "CREATE TABLE test (test DATETIME NOT NULL);"
         insert_query = "INSERT INTO test VALUES('2013-00-00 00:00:00')"
-        event = self.create_and_insert_value(create_query, insert_query)
+        event = yield from self.create_and_insert_value(create_query, insert_query)
         self.assertEqual(event.rows[0]["values"]["test"], None)
 
     def test_year(self):
         create_query = "CREATE TABLE test (a YEAR(4), b YEAR(2))"
         insert_query = "INSERT INTO test VALUES(1984, 1984)"
-        event = self.create_and_insert_value(create_query, insert_query)
+        event = yield from self.create_and_insert_value(create_query, insert_query)
         self.assertEqual(event.rows[0]["values"]["a"], 1984)
         self.assertEqual(event.rows[0]["values"]["b"], 1984)
 
     def test_varchar(self):
         create_query = "CREATE TABLE test (test VARCHAR(242)) CHARACTER SET latin1 COLLATE latin1_bin;"
         insert_query = "INSERT INTO test VALUES('Hello')"
-        event = self.create_and_insert_value(create_query, insert_query)
+        event = yield from self.create_and_insert_value(create_query, insert_query)
         self.assertEqual(event.rows[0]["values"]["test"], 'Hello')
         self.assertEqual(event.columns[0].max_length, 242)
 
@@ -334,7 +334,7 @@ class TestDataType(ReplicationTestCase):
                     b'100010101101', \
                     b'101100111', \
                     b'1101011010110100100111100011010100010100101110111011101011011010')"
-        event = self.create_and_insert_value(create_query, insert_query)
+        event = yield from self.create_and_insert_value(create_query, insert_query)
         self.assertEqual(event.columns[0].bits, 6)
         self.assertEqual(event.columns[1].bits, 16)
         self.assertEqual(event.columns[2].bits, 12)
@@ -350,55 +350,55 @@ class TestDataType(ReplicationTestCase):
     def test_enum(self):
         create_query = "CREATE TABLE test (test ENUM('a', 'ba', 'c'), test2 ENUM('a', 'ba', 'c')) CHARACTER SET latin1 COLLATE latin1_bin;"
         insert_query = "INSERT INTO test VALUES('ba', 'a')"
-        event = self.create_and_insert_value(create_query, insert_query)
+        event = yield from self.create_and_insert_value(create_query, insert_query)
         self.assertEqual(event.rows[0]["values"]["test"], 'ba')
         self.assertEqual(event.rows[0]["values"]["test2"], 'a')
 
     def test_set(self):
         create_query = "CREATE TABLE test (test SET('a', 'ba', 'c'), test2 SET('a', 'ba', 'c')) CHARACTER SET latin1 COLLATE latin1_bin;"
         insert_query = "INSERT INTO test VALUES('ba,a,c', 'a,c')"
-        event = self.create_and_insert_value(create_query, insert_query)
+        event = yield from self.create_and_insert_value(create_query, insert_query)
         self.assertEqual(event.rows[0]["values"]["test"], set(('a', 'ba', 'c')))
         self.assertEqual(event.rows[0]["values"]["test2"], set(('a', 'c')))
 
     def test_tiny_blob(self):
         create_query = "CREATE TABLE test (test TINYBLOB, test2 TINYTEXT) CHARACTER SET latin1 COLLATE latin1_bin;"
         insert_query = "INSERT INTO test VALUES('Hello', 'World')"
-        event = self.create_and_insert_value(create_query, insert_query)
+        event = yield from self.create_and_insert_value(create_query, insert_query)
         self.assertEqual(event.rows[0]["values"]["test"], b'Hello')
         self.assertEqual(event.rows[0]["values"]["test2"], 'World')
 
     def test_medium_blob(self):
         create_query = "CREATE TABLE test (test MEDIUMBLOB, test2 MEDIUMTEXT) CHARACTER SET latin1 COLLATE latin1_bin;"
         insert_query = "INSERT INTO test VALUES('Hello', 'World')"
-        event = self.create_and_insert_value(create_query, insert_query)
+        event = yield from self.create_and_insert_value(create_query, insert_query)
         self.assertEqual(event.rows[0]["values"]["test"], b'Hello')
         self.assertEqual(event.rows[0]["values"]["test2"], 'World')
 
     def test_long_blob(self):
         create_query = "CREATE TABLE test (test LONGBLOB, test2 LONGTEXT) CHARACTER SET latin1 COLLATE latin1_bin;"
         insert_query = "INSERT INTO test VALUES('Hello', 'World')"
-        event = self.create_and_insert_value(create_query, insert_query)
+        event = yield from self.create_and_insert_value(create_query, insert_query)
         self.assertEqual(event.rows[0]["values"]["test"], b'Hello')
         self.assertEqual(event.rows[0]["values"]["test2"], 'World')
 
     def test_blob(self):
         create_query = "CREATE TABLE test (test BLOB, test2 TEXT) CHARACTER SET latin1 COLLATE latin1_bin;"
         insert_query = "INSERT INTO test VALUES('Hello', 'World')"
-        event = self.create_and_insert_value(create_query, insert_query)
+        event = yield from self.create_and_insert_value(create_query, insert_query)
         self.assertEqual(event.rows[0]["values"]["test"], b'Hello')
         self.assertEqual(event.rows[0]["values"]["test2"], 'World')
 
     def test_string(self):
         create_query = "CREATE TABLE test (test CHAR(12)) CHARACTER SET latin1 COLLATE latin1_bin;"
         insert_query = "INSERT INTO test VALUES('Hello')"
-        event = self.create_and_insert_value(create_query, insert_query)
+        event = yield from self.create_and_insert_value(create_query, insert_query)
         self.assertEqual(event.rows[0]["values"]["test"], 'Hello')
 
     def test_geometry(self):
         create_query = "CREATE TABLE test (test GEOMETRY);"
         insert_query = "INSERT INTO test VALUES(GeomFromText('POINT(1 1)'))"
-        event = self.create_and_insert_value(create_query, insert_query)
+        event = yield from self.create_and_insert_value(create_query, insert_query)
         self.assertEqual(event.rows[0]["values"]["test"],
                          b'\x00\x00\x00\x00\x01\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\xf0?\x00\x00\x00\x00\x00\x00\xf0?')
 
@@ -426,7 +426,7 @@ class TestDataType(ReplicationTestCase):
             test20 TINYINT NULL DEFAULT NULL\
             )"
         insert_query = "INSERT INTO test (test, test2, test3, test7, test20) VALUES(NULL, -128, NULL, 42, 84)"
-        event = self.create_and_insert_value(create_query, insert_query)
+        event = yield from self.create_and_insert_value(create_query, insert_query)
         self.assertEqual(event.rows[0]["values"]["test"], None)
         self.assertEqual(event.rows[0]["values"]["test2"], -128)
         self.assertEqual(event.rows[0]["values"]["test3"], None)
@@ -446,7 +446,7 @@ class TestDataType(ReplicationTestCase):
         create_query = "CREATE TABLE test (test CHAR(12)) CHARACTER SET latin1 COLLATE latin1_bin;"
         insert_query = b"INSERT INTO test VALUES('" + string.encode(
             'latin-1') + b"');"
-        event = self.create_and_insert_value(create_query, insert_query)
+        event = yield from self.create_and_insert_value(create_query, insert_query)
         self.assertEqual(event.rows[0]["values"]["test"], string)
 
     def test_encoding_utf8(self):
@@ -459,9 +459,5 @@ class TestDataType(ReplicationTestCase):
         insert_query = b"INSERT INTO test VALUES('" + string.encode(
             'utf-8') + b"')"
 
-        event = self.create_and_insert_value(create_query, insert_query)
+        event = yield from self.create_and_insert_value(create_query, insert_query)
         self.assertMultiLineEqual(event.rows[0]["values"]["test"], string)
-
-
-if __name__ == "__main__":
-    unittest.main()
