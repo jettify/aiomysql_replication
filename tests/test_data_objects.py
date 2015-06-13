@@ -3,10 +3,9 @@ import unittest
 from aiomysql_replication.column import Column
 from aiomysql_replication.table import Table
 from aiomysql_replication.event import GtidEvent
-from tests import base
 
 
-class TestDataObjects(base.ReplicationTestCase):
+class TestDataObjects(unittest.TestCase):
 
     def ignoredEvents(self):
         return [GtidEvent]
