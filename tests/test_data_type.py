@@ -1,6 +1,5 @@
 import asyncio
 import copy
-import platform
 import datetime
 from decimal import Decimal
 
@@ -501,30 +500,26 @@ class TestDataType(ReplicationTestCase):
         self.assertEqual(event.rows[0]["values"]["test7"], 42)
         self.assertEqual(event.rows[0]["values"]["test20"], 84)
 
+    @run_until_complete
     def test_encoding_latin1(self):
+        yield from self.conn_control.ensure_closed()
+        self.conn_control = None
+
         db = copy.copy(self.database)
         db["charset"] = "latin1"
-        self.connect_conn_control(db)
-
-        if platform.python_version_tuple()[0] == "2":
-            string = chr(233)
-        else:
-            string = "\u00e9"
-
-        create_query = "CREATE TABLE test (test CHAR(12)) CHARACTER SET" \
-                       " latin1 COLLATE latin1_bin;"
-        insert_query = b"INSERT INTO test VALUES('" + string.encode(
-            'latin-1') + b"');"
+        yield from self.connect_conn_control(db)
+        string = "\u00e9"
+        create_query = "CREATE TABLE test (test CHAR(12)) CHARACTER SET " \
+                       "latin1 COLLATE latin1_bin;"
+        insert_query = b"INSERT INTO test VALUES('" + \
+                       string.encode('latin-1') + b"');"
         event = yield from self.create_and_insert_value(create_query,
                                                         insert_query)
         self.assertEqual(event.rows[0]["values"]["test"], string)
 
+    @run_until_complete
     def test_encoding_utf8(self):
-        if platform.python_version_tuple()[0] == "2":
-            string = chr(0x20ac)
-        else:
-            string = "\u20ac"
-
+        string = "\u20ac"
         create_query = "CREATE TABLE test (test CHAR(12)) CHARACTER SET " \
                        "utf8 COLLATE utf8_bin;"
         insert_query = b"INSERT INTO test VALUES('" + string.encode(
