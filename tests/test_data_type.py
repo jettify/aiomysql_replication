@@ -161,6 +161,7 @@ class TestDataType(ReplicationTestCase):
         self.assertEqual(event.rows[0]["values"]["id"], 255)
         self.assertEqual(event.rows[0]["values"]["test"], -128)
 
+    @run_until_complete
     def test_tiny_maps_to_boolean_true(self):
         create_query = "CREATE TABLE test (id TINYINT UNSIGNED NOT NULL, " \
                        "test BOOLEAN)"
@@ -171,6 +172,7 @@ class TestDataType(ReplicationTestCase):
         self.assertEqual(type(event.rows[0]["values"]["test"]), type(1))
         self.assertEqual(event.rows[0]["values"]["test"], 1)
 
+    @run_until_complete
     def test_tiny_maps_to_boolean_false(self):
         create_query = "CREATE TABLE test (id TINYINT UNSIGNED NOT NULL, " \
                        "test BOOLEAN)"
@@ -181,6 +183,7 @@ class TestDataType(ReplicationTestCase):
         self.assertEqual(type(event.rows[0]["values"]["test"]), type(0))
         self.assertEqual(event.rows[0]["values"]["test"], 0)
 
+    @run_until_complete
     def test_tiny_maps_to_none(self):
         create_query = "CREATE TABLE test (id TINYINT UNSIGNED NOT NULL, " \
                        "test BOOLEAN)"
@@ -191,6 +194,7 @@ class TestDataType(ReplicationTestCase):
         self.assertEqual(type(event.rows[0]["values"]["test"]), type(None))
         self.assertEqual(event.rows[0]["values"]["test"], None)
 
+    @run_until_complete
     def test_short(self):
         create_query = "CREATE TABLE test (id SMALLINT UNSIGNED NOT NULL, " \
                        "test SMALLINT)"
@@ -200,6 +204,7 @@ class TestDataType(ReplicationTestCase):
         self.assertEqual(event.rows[0]["values"]["id"], 65535)
         self.assertEqual(event.rows[0]["values"]["test"], -32768)
 
+    @run_until_complete
     def test_long(self):
         create_query = "CREATE TABLE test (id INT UNSIGNED NOT NULL, test INT)"
         insert_query = "INSERT INTO test VALUES(4294967295, -2147483648)"
@@ -208,6 +213,7 @@ class TestDataType(ReplicationTestCase):
         self.assertEqual(event.rows[0]["values"]["id"], 4294967295)
         self.assertEqual(event.rows[0]["values"]["test"], -2147483648)
 
+    @run_until_complete
     def test_float(self):
         create_query = "CREATE TABLE test (id FLOAT NOT NULL, test FLOAT)"
         insert_query = "INSERT INTO test VALUES(42.42, -84.84)"
@@ -216,6 +222,7 @@ class TestDataType(ReplicationTestCase):
         self.assertEqual(round(event.rows[0]["values"]["id"], 2), 42.42)
         self.assertEqual(round(event.rows[0]["values"]["test"], 2), -84.84)
 
+    @run_until_complete
     def test_double(self):
         create_query = "CREATE TABLE test (id DOUBLE NOT NULL, test DOUBLE)"
         insert_query = "INSERT INTO test VALUES(42.42, -84.84)"
@@ -224,6 +231,7 @@ class TestDataType(ReplicationTestCase):
         self.assertEqual(round(event.rows[0]["values"]["id"], 2), 42.42)
         self.assertEqual(round(event.rows[0]["values"]["test"], 2), -84.84)
 
+    @run_until_complete
     def test_timestamp(self):
         create_query = "CREATE TABLE test (test TIMESTAMP);"
         insert_query = "INSERT INTO test VALUES('1984-12-03 12:33:07')"
@@ -232,6 +240,7 @@ class TestDataType(ReplicationTestCase):
         self.assertEqual(event.rows[0]["values"]["test"],
                          datetime.datetime(1984, 12, 3, 12, 33, 7))
 
+    @run_until_complete
     def test_timestamp_mysql56(self):
         if not self.isMySQL56AndMore():
             self.skipTest("Not supported in this version of MySQL")
@@ -266,6 +275,7 @@ class TestDataType(ReplicationTestCase):
         self.assertEqual(event.rows[0]["values"]["test6"],
                          datetime.datetime(1984, 12, 3, 12, 33, 7, 123456))
 
+    @run_until_complete
     def test_longlong(self):
         create_query = "CREATE TABLE test (id BIGINT UNSIGNED NOT NULL, " \
                        "test BIGINT)"
@@ -276,6 +286,7 @@ class TestDataType(ReplicationTestCase):
         self.assertEqual(event.rows[0]["values"]["id"], 18446744073709551615)
         self.assertEqual(event.rows[0]["values"]["test"], -9223372036854775808)
 
+    @run_until_complete
     def test_int24(self):
         create_query = "CREATE TABLE test (id MEDIUMINT UNSIGNED NOT NULL, " \
                        "test MEDIUMINT, test2 MEDIUMINT, test3 MEDIUMINT, " \
@@ -291,6 +302,7 @@ class TestDataType(ReplicationTestCase):
         self.assertEqual(event.rows[0]["values"]["test4"], -8)
         self.assertEqual(event.rows[0]["values"]["test5"], 0)
 
+    @run_until_complete
     def test_date(self):
         create_query = "CREATE TABLE test (test DATE);"
         insert_query = "INSERT INTO test VALUES('1984-12-03')"
@@ -299,6 +311,7 @@ class TestDataType(ReplicationTestCase):
         self.assertEqual(event.rows[0]["values"]["test"],
                          datetime.date(1984, 12, 3))
 
+    @run_until_complete
     def test_zero_date(self):
         create_query = "CREATE TABLE test (id INTEGER, test DATE, test2 DATE);"
         insert_query = "INSERT INTO test (id, test2) VALUES(1, '0000-01-21')"
@@ -307,6 +320,7 @@ class TestDataType(ReplicationTestCase):
         self.assertEqual(event.rows[0]["values"]["test"], None)
         self.assertEqual(event.rows[0]["values"]["test2"], None)
 
+    @run_until_complete
     def test_time(self):
         create_query = "CREATE TABLE test (test TIME);"
         insert_query = "INSERT INTO test VALUES('12:33:18')"
@@ -315,6 +329,7 @@ class TestDataType(ReplicationTestCase):
         self.assertEqual(event.rows[0]["values"]["test"],
                          datetime.time(12, 33, 18))
 
+    @run_until_complete
     def test_zero_time(self):
         create_query = "CREATE TABLE test (id INTEGER, test TIME NOT NULL " \
                        "DEFAULT 0);"
@@ -323,6 +338,7 @@ class TestDataType(ReplicationTestCase):
                                                         insert_query)
         self.assertEqual(event.rows[0]["values"]["test"], datetime.time(0, 0))
 
+    @run_until_complete
     def test_datetime(self):
         create_query = "CREATE TABLE test (test DATETIME);"
         insert_query = "INSERT INTO test VALUES('1984-12-03 12:33:07')"
@@ -331,6 +347,7 @@ class TestDataType(ReplicationTestCase):
         self.assertEqual(event.rows[0]["values"]["test"],
                          datetime.datetime(1984, 12, 3, 12, 33, 7))
 
+    @run_until_complete
     def test_zero_datetime(self):
         create_query = "CREATE TABLE test (id INTEGER, test DATETIME NOT " \
                        "NULL DEFAULT 0);"
@@ -339,6 +356,7 @@ class TestDataType(ReplicationTestCase):
                                                         insert_query)
         self.assertEqual(event.rows[0]["values"]["test"], None)
 
+    @run_until_complete
     def test_broken_datetime(self):
         create_query = "CREATE TABLE test (test DATETIME NOT NULL);"
         insert_query = "INSERT INTO test VALUES('2013-00-00 00:00:00')"
@@ -346,6 +364,7 @@ class TestDataType(ReplicationTestCase):
                                                         insert_query)
         self.assertEqual(event.rows[0]["values"]["test"], None)
 
+    @run_until_complete
     def test_year(self):
         create_query = "CREATE TABLE test (a YEAR(4), b YEAR(2))"
         insert_query = "INSERT INTO test VALUES(1984, 1984)"
@@ -354,6 +373,7 @@ class TestDataType(ReplicationTestCase):
         self.assertEqual(event.rows[0]["values"]["a"], 1984)
         self.assertEqual(event.rows[0]["values"]["b"], 1984)
 
+    @run_until_complete
     def test_varchar(self):
         create_query = "CREATE TABLE test (test VARCHAR(242)) CHARACTER " \
                        "SET latin1 COLLATE latin1_bin;"
@@ -363,6 +383,7 @@ class TestDataType(ReplicationTestCase):
         self.assertEqual(event.rows[0]["values"]["test"], 'Hello')
         self.assertEqual(event.columns[0].max_length, 242)
 
+    @run_until_complete
     def test_bit(self):
         create_query = "CREATE TABLE test (test BIT(6), \
                 test2 BIT(16), \
@@ -392,6 +413,7 @@ class TestDataType(ReplicationTestCase):
                          "1101011010110100100111100011010100010100101"
                          "110111011101011011010")
 
+    @run_until_complete
     def test_enum(self):
         create_query = "CREATE TABLE test (test ENUM('a', 'ba', 'c'), " \
                        "test2 ENUM('a', 'ba', 'c')) CHARACTER SET latin1 " \
@@ -402,6 +424,7 @@ class TestDataType(ReplicationTestCase):
         self.assertEqual(event.rows[0]["values"]["test"], 'ba')
         self.assertEqual(event.rows[0]["values"]["test2"], 'a')
 
+    @run_until_complete
     def test_set(self):
         create_query = "CREATE TABLE test (test SET('a', 'ba', 'c'), test2 " \
                        "SET('a', 'ba', 'c')) CHARACTER SET latin1 " \
@@ -414,6 +437,7 @@ class TestDataType(ReplicationTestCase):
         self.assertEqual(event.rows[0]["values"]["test2"],
                          set(('a', 'c')))
 
+    @run_until_complete
     def test_tiny_blob(self):
         create_query = "CREATE TABLE test (test TINYBLOB, test2 TINYTEXT) " \
                        "CHARACTER SET latin1 COLLATE latin1_bin;"
@@ -423,6 +447,7 @@ class TestDataType(ReplicationTestCase):
         self.assertEqual(event.rows[0]["values"]["test"], b'Hello')
         self.assertEqual(event.rows[0]["values"]["test2"], 'World')
 
+    @run_until_complete
     def test_medium_blob(self):
         create_query = "CREATE TABLE test (test MEDIUMBLOB, test2 " \
                        "MEDIUMTEXT) CHARACTER SET latin1 COLLATE latin1_bin;"
@@ -432,6 +457,7 @@ class TestDataType(ReplicationTestCase):
         self.assertEqual(event.rows[0]["values"]["test"], b'Hello')
         self.assertEqual(event.rows[0]["values"]["test2"], 'World')
 
+    @run_until_complete
     def test_long_blob(self):
         create_query = "CREATE TABLE test (test LONGBLOB, test2 LONGTEXT)" \
                        " CHARACTER SET latin1 COLLATE latin1_bin;"
@@ -441,6 +467,7 @@ class TestDataType(ReplicationTestCase):
         self.assertEqual(event.rows[0]["values"]["test"], b'Hello')
         self.assertEqual(event.rows[0]["values"]["test2"], 'World')
 
+    @run_until_complete
     def test_blob(self):
         create_query = "CREATE TABLE test (test BLOB, test2 TEXT) " \
                        "CHARACTER SET latin1 COLLATE latin1_bin;"
@@ -450,6 +477,7 @@ class TestDataType(ReplicationTestCase):
         self.assertEqual(event.rows[0]["values"]["test"], b'Hello')
         self.assertEqual(event.rows[0]["values"]["test2"], 'World')
 
+    @run_until_complete
     def test_string(self):
         create_query = "CREATE TABLE test (test CHAR(12)) CHARACTER SET " \
                        "latin1 COLLATE latin1_bin;"
@@ -458,6 +486,7 @@ class TestDataType(ReplicationTestCase):
                                                         insert_query)
         self.assertEqual(event.rows[0]["values"]["test"], 'Hello')
 
+    @run_until_complete
     def test_geometry(self):
         create_query = "CREATE TABLE test (test GEOMETRY);"
         insert_query = "INSERT INTO test VALUES(GeomFromText('POINT(1 1)'))"
@@ -467,6 +496,7 @@ class TestDataType(ReplicationTestCase):
                          b'\x00\x00\x00\x00\x01\x01\x00\x00\x00\x00\x00'
                          b'\x00\x00\x00\x00\xf0?\x00\x00\x00\x00\x00\x00\xf0?')
 
+    @run_until_complete
     def test_null(self):
         create_query = "CREATE TABLE test ( \
             test TINYINT NULL DEFAULT NULL, \
