@@ -36,6 +36,7 @@ class BaseTest(unittest.TestCase):
 
 
 class ReplicationTestCase(BaseTest):
+
     def ignoredEvents(self):
         return []
 
@@ -95,7 +96,7 @@ class ReplicationTestCase(BaseTest):
         self.conn_control = yield from aiomysql.connect(**db)
 
     def tearDown(self):
-        self.conn_control.close()
+        self.loop.run_until_complete(self.conn_control.ensure_closed())
         self.conn_control = None
         self.stream.close()
         self.stream = None
