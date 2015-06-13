@@ -4,7 +4,7 @@ import platform
 import datetime
 from decimal import Decimal
 
-from aiomysql_replication import event
+from aiomysql_replication import event as ev
 from aiomysql_replication import row_event
 from aiomysql_replication.consts import BinLog
 from .base import ReplicationTestCase, run_until_complete
@@ -13,7 +13,7 @@ from .base import ReplicationTestCase, run_until_complete
 class TestDataType(ReplicationTestCase):
 
     def ignoredEvents(self):
-        return [event.GtidEvent]
+        return [ev.GtidEvent]
 
     @asyncio.coroutine
     def create_and_insert_value(self, create_query, insert_query):
@@ -22,16 +22,16 @@ class TestDataType(ReplicationTestCase):
         yield from self.execute("COMMIT")
 
         event = yield from self.stream.fetchone()
-        self.assertIsInstance(event, event.RotateEvent)
+        self.assertIsInstance(event, ev.RotateEvent)
         event = yield from self.stream.fetchone()
-        self.assertIsInstance(event, event.FormatDescriptionEvent)
+        self.assertIsInstance(event, ev.FormatDescriptionEvent)
         # QueryEvent for the Create Table
         event = yield from self.stream.fetchone()
-        self.assertIsInstance(event, event.QueryEvent)
+        self.assertIsInstance(event, ev.QueryEvent)
 
         # QueryEvent for the BEGIN
         event = yield from self.stream.fetchone()
-        self.assertIsInstance(event, event.QueryEvent)
+        self.assertIsInstance(event, ev.QueryEvent)
         event = yield from self.stream.fetchone()
         self.assertIsInstance(event, row_event.TableMapEvent)
 
