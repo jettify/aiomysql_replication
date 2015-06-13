@@ -118,6 +118,7 @@ class TestDataType(ReplicationTestCase):
                                                         insert_query)
         self.assertEqual(event.rows[0]["values"]["test"], Decimal("10"))
 
+    @run_until_complete
     def test_decimal_with_zero_scale_2(self):
         create_query = "CREATE TABLE test (test DECIMAL(23,0))"
         insert_query = "INSERT INTO test VALUES(12345678912345678912345)"
@@ -126,6 +127,7 @@ class TestDataType(ReplicationTestCase):
         self.assertEqual(event.rows[0]["values"]["test"],
                          Decimal("12345678912345678912345"))
 
+    @run_until_complete
     def test_decimal_with_zero_scale_3(self):
         create_query = "CREATE TABLE test (test DECIMAL(23,0))"
         insert_query = "INSERT INTO test VALUES(100000.0)"
@@ -133,6 +135,7 @@ class TestDataType(ReplicationTestCase):
                                                         insert_query)
         self.assertEqual(event.rows[0]["values"]["test"], Decimal("100000"))
 
+    @run_until_complete
     def test_decimal_with_zero_scale_4(self):
         create_query = "CREATE TABLE test (test DECIMAL(23,0))"
         insert_query = "INSERT INTO test VALUES(-100000.0)"
@@ -140,6 +143,7 @@ class TestDataType(ReplicationTestCase):
                                                         insert_query)
         self.assertEqual(event.rows[0]["values"]["test"], Decimal("-100000"))
 
+    @run_until_complete
     def test_decimal_with_zero_scale_6(self):
         create_query = "CREATE TABLE test (test DECIMAL(23,0))"
         insert_query = "INSERT INTO test VALUES(-1234567891234567891234)"
@@ -148,6 +152,7 @@ class TestDataType(ReplicationTestCase):
         self.assertEqual(event.rows[0]["values"]["test"],
                          Decimal("-1234567891234567891234"))
 
+    @run_until_complete
     def test_tiny(self):
         create_query = "CREATE TABLE test (id TINYINT UNSIGNED NOT NULL, " \
                        "test TINYINT)"
