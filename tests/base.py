@@ -99,6 +99,7 @@ class ReplicationTestCase(BaseTest):
         self.conn_control = None
         self.stream.close()
         self.stream = None
+        super().tearDown()
 
     @asyncio.coroutine
     def execute(self, query):
