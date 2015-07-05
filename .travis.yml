@@ -1,0 +1,26 @@
+language: python
+
+python:
+    - 3.3
+    - 3.4
+
+env:
+    matrix:
+        - PYTHONASYNCIODEBUG=1
+        - PYTHONASYNCIODEBUG=0
+
+before_script:
+    - "mysql -e 'DROP DATABASE IF EXISTS pymysqlreplication_test; create database pymysqlreplication_test  DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;'"
+
+install:
+    - pip install flake8
+    - pip install nose
+    - pip install coverage
+    - pip install .
+    - pip install coveralls
+
+script:
+- make cov
+
+after_success:
+  - coveralls
