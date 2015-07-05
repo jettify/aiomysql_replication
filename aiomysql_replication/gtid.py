@@ -3,6 +3,9 @@ import re
 import struct
 
 
+__all__ = ['Gtid', 'GtidSet']
+
+
 class Gtid(object):
     @staticmethod
     def parse_interval(interval):

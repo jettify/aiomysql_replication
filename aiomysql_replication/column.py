@@ -3,6 +3,9 @@ import struct
 from .consts import FieldType
 
 
+__all__ = ['Column']
+
+
 class Column(object):
     """Definition of a column
     """

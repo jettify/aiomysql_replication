@@ -24,3 +24,6 @@ __version__ = '0.0.1'
 from .binlogstream import BinLogStreamReader, create_binlog_stream
 
 (BinLogStreamReader, create_binlog_stream)  # make pyflakes happy
+
+
+__all__ = ['create_binlog_stream', 'BinLogStreamReader']

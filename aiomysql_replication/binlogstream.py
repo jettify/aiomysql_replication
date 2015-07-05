@@ -17,6 +17,7 @@ from .row_event import (
 
 from .utils import int2byte
 
+__all__ = ['create_binlog_stream', 'BinLogStreamReader']
 
 # 2013 Connection Lost
 # 2006 MySQL server has gone away
